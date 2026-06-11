@@ -20,6 +20,7 @@ async function loadDiaryData() {
     diaryData = await response.json();
     syncEmotionCatalog(diaryData);
     patternData = buildEmotionData(diaryData);
+    rebuildBaseBlocks();
     resizeCanvas();
   } catch (error) {
     console.error("Diary loading error:", error);
@@ -277,20 +278,54 @@ const WORD_LABELS = {
   cibo:'food', fame:'hunger', dormire:'sleep', svegliare:'wake', svegliata:'woke', piangere:'cry', pianto:'crying',
   gross:'gross', grosso:'big', grossa:'big', inutile:'useless', lei:'she', altra:'other', possibile:'possible'
 };
+const EMOTION_IDS = [...POSITIVE_EMOTIONS, ...NEGATIVE_EMOTIONS, ...Object.keys(EMOTION_LABELS)];
+const EMOTION_THEME_STOP = (() => {
+  const stop = new Set();
+  const add = (w) => {
+    const d = deaccent(String(w || '').toLowerCase().trim());
+    if(d) stop.add(d);
+  };
+  EMOTION_IDS.forEach(add);
+  Object.values(EMOTION_LABELS).forEach(add);
+  EMOTION_IDS.forEach(id => add(IT_WORDS[id]));
+  Object.entries(IT_WORDS).forEach(([it, en]) => {
+    const key = deaccent(it);
+    if(EMOTION_IDS.includes(key) || EMOTION_LABELS[key]) add(it), add(en);
+  });
+  ['noia','angoscia','depressione','apatia','irritazione','ansietà','emozioni','emozione',
+    'emozioni negative','emozione negativa','negative emotions','negative emotion'].forEach(add);
+  return stop;
+})();
 function normTheme(t){ return String(t || '').toLowerCase().trim(); }
 const RELIGION_REF_RE = /\b(?:dio|gesu|gesù|jesus|cristo|christ|god|madonna|religione|religion|fede|preghiera|chiesa|sant[oaie]?|ringraziare|ringrazia|porco\w*|amen|paradiso|inferno|diavolo|angelo|angels?|bible|bibbia|messa|vaticano|papa|prete|suora)\b/i;
 function isReligionRef(text){
   return RELIGION_REF_RE.test(deaccent(normTheme(text)));
 }
 function isThemeNoise(theme){
-  const k = normTheme(theme);
-  return !k || k === ':' || k.length < 2 || /^\d{1,2}\s+\w+\s+\d{4}$/.test(k) || isReligionRef(k);
+  const k = deaccent(normTheme(theme));
+  return !k || k === ':' || k.length < 2 || /^\d{1,2}\s+\w+\s+\d{4}$/.test(k) || isReligionRef(k) || /\binfelicita\b/.test(k);
 }
 function deaccent(value){
   return String(value || '').normalize('NFD').replace(/\p{M}/gu, '');
 }
 function themeKey(theme){
   return normTheme(theme).replace(/\s*\(\d+\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function isEmotionTheme(theme){
+  const k = deaccent(themeKey(theme));
+  return !!k && EMOTION_THEME_STOP.has(k);
+}
+const NEGATIVE_THEME_RE = /\b(?:inutil\w*|useless\w*|palle|annoyance|fastidio|fastidi\w*|nulla|nothing|repressione|disperazione|despair|senso di colpa|worthless|vuoto|void|morte|death|suicid\w*|odio|hatred|schifo|disgust|depressione|depression|autoostile\w*|auto-ostile\w*|autodisprezzo|self-hatred|crisi emotiva|emotional crisis|infelic\w*|unhappiness|disperazione|desperation|colpa|guilt|vergogna|shame|isolamento|isolation)\b/i;
+const POSITIVE_THEME_RE = /\b(?:gioia|joy|felic\w*|happiness|gratitudine|gratitude|speranza|hope|serenit\w*|serenity|entusiasmo|enthusiasm|eccitazione|excitement|amore|love|fiducia|trust|rilassamento|relaxation|giornata positiva|good day|giorno di riposo|rest day)\b/i;
+function maxNegativeEmotionScore(entry){
+  return Math.max(...NEGATIVE_EMOTIONS.map(id => emotionScore(entry, id)), 0);
+}
+function isIncongruentTheme(theme, emotion){
+  const k = deaccent(themeKey(theme));
+  if(!k) return true;
+  if(POSITIVE_EMOTIONS.includes(emotion) && NEGATIVE_THEME_RE.test(k)) return true;
+  if(NEGATIVE_EMOTIONS.includes(emotion) && POSITIVE_THEME_RE.test(k)) return true;
+  return false;
 }
 function lookupLabel(map, key){
   if(map[key]) return map[key];
@@ -319,7 +354,7 @@ function emotionLabel(id){
   return lookupLabel(EMOTION_LABELS, id) || String(id || '').replace(/_/g, ' ');
 }
 function themeLabel(theme){
-  if(isThemeNoise(theme)) return '';
+  if(isThemeNoise(theme) || isEmotionTheme(theme)) return '';
   const k = themeKey(theme);
   const direct = lookupLabel(THEME_LABELS, k);
   if(direct) return direct;
@@ -365,22 +400,35 @@ function deriveTopEmotions(entries){
 }
 function syncEmotionCatalog(entries){
   topEmotions = entries?.length ? deriveTopEmotions(entries) : [...FALLBACK_TOP_EMOTIONS];
-  rebuildBaseBlocks();
+}
+function emotionEntryCount(id){
+  return patternData[id]?.countNum || FALLBACK_COUNTS[id] || 40;
+}
+function blockSizeForCount(count, baseW, baseH, minCount, maxCount){
+  const minScale = 0.74;
+  const maxScale = 1.22;
+  const t = maxCount <= minCount ? 0.5 : (count - minCount) / (maxCount - minCount);
+  const scale = minScale + Math.sqrt(t) * (maxScale - minScale);
+  return {
+    w: Math.round(Math.max(66, Math.min(152, baseW * scale))),
+    h: Math.round(Math.max(70, Math.min(176, baseH * scale)))
+  };
 }
 const WORD_STOP = new Set('il lo la i gli le un una uno di a da in con su per che non mi io tu si ma se come più anche questo questa sono era essere ho hai stato stata del della dei delle al nel nella nei nelle al allo alla alle the and can but for you your was were have has had this that with from they them their what when where why how all any out our just not are been being would could should about into over after before than then very much many some such only other another while during through because until unless since though although anche ancora sempre mai già qui lì dove quando perché perchè quindi cioè tipo proprio niente nulla tutto tutta tutti tutte molto poco troppo bene male così cosi cosa cose sto sta stai stiamo state stati fat get got want feel like need know think going gonna dont im ive its thats theres wasnt isnt cant wont myself yourself himself herself itself ourselves themselves hate fucking fuck shit damn day days keep still even really maybe something someone anything everything nothing outdoor indoor body disgusting anymore passi passo don more faccio fare video tag support does not'.split(/\s+/));
 const EMOTION_WORD_OVERRIDES = {
-  speranza: ['possible', 'life', 'starting', 'good', 'change']
+  speranza: ['possible', 'life', 'starting', 'good', 'change'],
+  tristezza: ['alone', 'emptiness', 'crying', 'memory', 'loss']
 };
 const FALLBACK_WORDS = {
-  tristezza:'home · evening · body', stress:'study · list · waiting', malinconia:'night · void · distance',
+  tristezza:'alone · emptiness · crying · memory · loss', stress:'study · list · waiting', malinconia:'night · void · distance',
   frustrazione:'again · enough · loop', ansia:'tomorrow · body · waiting', solitudine:'home · room · silence',
   desiderio:'tomorrow · going out · again', speranza:'possible · life · starting · good · change'
 };
 const FALLBACK_THEMES = {
-  tristezza:'loneliness, nostalgia, isolation', stress:'anxiety, routine, work',
-  malinconia:'nostalgia, loneliness, memory', frustrazione:'insecurity, boredom, anger',
-  ansia:'insecurity, future, control', solitudine:'isolation, relationships, home',
-  desiderio:'hope, motivation, future'
+  tristezza:'isolation, memory, home', stress:'routine, work, study',
+  malinconia:'memory, distance, night', frustrazione:'insecurity, study, loop',
+  ansia:'future, control, waiting', solitudine:'home, relationships, room',
+  desiderio:'future, motivation, going out'
 };
 const FALLBACK_COUNTS = {tristezza:240,stress:159,sollievo:180,frustrazione:113,malinconia:128,incertezza:124,desiderio:189,rabbia:110,vulnerabilita:95,solitudine:86};
 
@@ -411,6 +459,10 @@ function entriesForEmotion(entries, emotion){
     if(score !== emotionMaxScore(e)) return false;
     const tied = dominantEmotions(e);
     if(POSITIVE_EMOTIONS.includes(emotion) && tied.some(t => NEGATIVE_EMOTIONS.includes(t))) return false;
+    if(POSITIVE_EMOTIONS.includes(emotion)){
+      const maxNeg = maxNegativeEmotionScore(e);
+      if(maxNeg > 0 && score - maxNeg < 2) return false;
+    }
     return true;
   });
 }
@@ -534,11 +586,15 @@ function topThemesForEmotion(entries, emotion, limit = 3){
     const weight = score + Math.max(0, margin);
     (e.analisi?.temi || []).forEach(t => {
       const k = normTheme(t);
-      if(!k || k === emotion || isThemeNoise(t)) return;
+      if(!k || k === emotion || isThemeNoise(t) || isEmotionTheme(t) || isIncongruentTheme(t, emotion)) return;
       counts[k] = (counts[k] || 0) + weight;
     });
   });
-  return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, limit).map(([t]) => t);
+  return Object.entries(counts)
+    .filter(([t]) => !isEmotionTheme(t) && !isIncongruentTheme(t, emotion))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([t]) => t);
 }
 function formatWordList(words){
   if(!words.length) return '—';
@@ -592,21 +648,21 @@ function buildEmotionData(entries){
 let patternData = buildEmotionData(null);
 function block(id,cx,y,w,h,imgSet,slow=1){ return {id,cx,y,w,h,imgSet,slow}; }
 const BASE_LAYOUT = [
-  {cx:174,y:102,w:140,h:90,imgSet:[0,1,2],slow:.61},
-  {cx:392,y:110,w:118,h:112,imgSet:[3,4,5],slow:1.34},
-  {cx:672,y:99,w:84,h:158,imgSet:[7,3,13],slow:.52},
-  {cx:140,y:272,w:106,h:84,imgSet:[10,2,7],slow:1.28},
-  {cx:405,y:266,w:88,h:140,imgSet:[11,6,1],slow:1.16},
-  {cx:624,y:274,w:142,h:106,imgSet:[2,6,10],slow:.72},
-  {cx:152,y:407,w:92,h:172,imgSet:[9,10,11],slow:1.37},
-  {cx:638,y:415,w:98,h:128,imgSet:[15,0,5],slow:.48},
-  {cx:402,y:414,w:116,h:88,imgSet:[6,7,8],slow:.24},
-  {cx:122,y:657,w:88,h:118,imgSet:[12,13,14],slow:.98},
-  {cx:398,y:666,w:108,h:94,imgSet:[4,8,12],slow:1.08},
-  {cx:638,y:659,w:128,h:92,imgSet:[12,5,10],slow:.44},
-  {cx:650,y:537,w:104,h:110,imgSet:[14,7,2],slow:1.48},
-  {cx:136,y:531,w:88,h:126,imgSet:[9,0,11],slow:1.06},
-  {cx:478,y:540,w:108,h:98,imgSet:[8,15,3],slow:.78}
+  {cx:162,y:118,w:140,h:90,imgSet:[0,1,2],slow:.61},
+  {cx:336,y:75,w:118,h:112,imgSet:[3,4,5],slow:1.34},
+  {cx:492,y:148,w:84,h:158,imgSet:[7,3,13],slow:.52},
+  {cx:648,y:88,w:106,h:84,imgSet:[10,2,7],slow:1.28},
+  {cx:124,y:278,w:88,h:140,imgSet:[11,6,1],slow:1.16},
+  {cx:271,y:348,w:142,h:106,imgSet:[2,6,10],slow:.72},
+  {cx:419,y:218,w:92,h:172,imgSet:[9,10,11],slow:1.37},
+  {cx:525,y:311,w:98,h:128,imgSet:[15,0,5],slow:.48},
+  {cx:664,y:223,w:116,h:88,imgSet:[6,7,8],slow:.24},
+  {cx:188,y:478,w:88,h:118,imgSet:[12,13,14],slow:.98},
+  {cx:342,y:538,w:108,h:94,imgSet:[4,8,12],slow:1.08},
+  {cx:498,y:411,w:128,h:92,imgSet:[12,5,10],slow:.44},
+  {cx:668,y:502,w:104,h:110,imgSet:[14,7,2],slow:1.48},
+  {cx:231,y:672,w:88,h:126,imgSet:[9,0,11],slow:1.06},
+  {cx:438,y:694,w:108,h:98,imgSet:[8,15,3],slow:.78}
 ];
 let baseBlocks = [];
 function blockWorldBounds(cx, y, w, h, pad = 10){
@@ -638,10 +694,16 @@ function clampBlockPosition(cx, y, w, h){
   return { cx: nx, y: ny };
 }
 function rebuildBaseBlocks(){
-  baseBlocks = BASE_LAYOUT.map((layout, i) => block(
-    topEmotions[i] || topEmotions[0],
-    layout.cx, layout.y, layout.w, layout.h, layout.imgSet, layout.slow
-  ));
+  const ids = BASE_LAYOUT.map((_, i) => topEmotions[i] || topEmotions[0]);
+  const counts = ids.map(emotionEntryCount);
+  const minC = Math.min(...counts);
+  const maxC = Math.max(...counts);
+  baseBlocks = BASE_LAYOUT.map((layout, i) => {
+    const id = ids[i];
+    const { w, h } = blockSizeForCount(emotionEntryCount(id), layout.w, layout.h, minC, maxC);
+    const pos = clampBlockPosition(layout.cx, layout.y, w, h);
+    return block(id, pos.cx, pos.y, w, h, layout.imgSet, layout.slow);
+  });
   blocks = [...baseBlocks];
 }
 let hover = null;
@@ -698,10 +760,10 @@ function capitalizeLabel(s){
   return t ? t.charAt(0).toUpperCase() + t.slice(1) : '';
 }
 function labelLayoutForBlock(b){
-  if(b.w < 72) return {title:8, count:9, words:7, lines:1, padY:0};
-  if(b.w < 105) return {title:9, count:10, words:7, lines:1, padY:2};
-  if(b.w < 140) return {title:10, count:12, words:8, lines:2, padY:4};
-  return {title:11, count:13, words:8.5, lines:2, padY:6};
+  if(b.w < 72) return {title:9.5, count:7.5, words:5.5, lines:1, padY:0};
+  if(b.w < 105) return {title:10.5, count:8, words:5.5, lines:1, padY:2};
+  if(b.w < 140) return {title:11.5, count:8.5, words:6, lines:2, padY:4};
+  return {title:12.5, count:9, words:6.5, lines:2, padY:6};
 }
 function isoStrokeText(text, x, y, font, fill, stroke='rgba(251,247,246,.94)', lw=3.2){
   ctx.font = font;
@@ -715,12 +777,12 @@ function isoStrokeText(text, x, y, font, fill, stroke='rgba(251,247,246,.94)', l
   ctx.fillStyle = fill;
   ctx.fillText(text, x, y);
 }
-function titleFontForFace(title, baseSize, maxWidth){
+function titleFontForFace(title, baseSize, maxWidth, minSize = 7.5){
   let size = baseSize;
-  ctx.font = `700 ${size}px Arial, Helvetica, sans-serif`;
-  while(size > 6.5 && ctx.measureText(title).width > maxWidth){
+  ctx.font = `900 ${size}px Arial, Helvetica, sans-serif`;
+  while(size > minSize && ctx.measureText(title).width > maxWidth){
     size -= 0.45;
-    ctx.font = `700 ${size}px Arial, Helvetica, sans-serif`;
+    ctx.font = `900 ${size}px Arial, Helvetica, sans-serif`;
   }
   return size;
 }
@@ -759,9 +821,9 @@ function drawTopLabel(b, p, alpha, isActive){
   const title = capitalizeLabel(data.label);
   const count = data.count || '';
   const wordLines = layout.lines > 1 ? wordLinesForFace(data.quote, layout.lines, Math.max(18, Math.floor(b.w * 0.34))) : [];
-  const lineGap = layout.words + 3;
-  const titleSize = titleFontForFace(title, layout.title, iw * 0.76);
-  const blockH = (wordLines.length ? lineGap * wordLines.length : 0) + layout.count + titleSize + 10;
+  const titleSize = titleFontForFace(title, layout.title, iw * 0.76, layout.words * 1.35);
+  const wordSize = Math.min(layout.words, titleSize * 0.58);
+  const blockH = (wordLines.length ? (wordSize + 3) * wordLines.length : 0) + layout.count + titleSize + 10;
   let y = cy - blockH * 0.5 + titleSize * 0.5 + layout.padY;
 
   ctx.save();
@@ -781,31 +843,31 @@ function drawTopLabel(b, p, alpha, isActive){
     title,
     cx,
     y,
-    `700 ${titleSize}px Arial, Helvetica, sans-serif`,
-    isActive ? 'rgba(40,23,38,.96)' : 'rgba(40,23,38,.88)',
+    `900 ${titleSize}px Arial, Helvetica, sans-serif`,
+    isActive ? 'rgba(40,23,38,.98)' : 'rgba(40,23,38,.92)',
     'rgba(251,247,246,.95)',
     isActive ? 3.6 : 3
   );
-  y += titleSize * 0.55 + layout.count * 0.55;
+  y += titleSize * 0.58 + layout.count * 0.5;
   isoStrokeText(
     count,
     cx,
     y,
-    `400 ${layout.count}px Georgia, "Times New Roman", serif`,
-    'rgba(111,98,106,.94)',
+    `700 ${layout.count}px Georgia, "Times New Roman", serif`,
+    isActive ? 'rgba(111,98,106,1)' : 'rgba(111,98,106,.9)',
     'rgba(251,247,246,.92)',
     2.8
   );
-  y += layout.count * 0.45 + 4;
+  y += layout.count * 0.48 + 5;
   wordLines.forEach((line, i) => {
     isoStrokeText(
       line,
       cx,
-      y + i * lineGap,
-      `400 ${layout.words}px Arial, Helvetica, sans-serif`,
-      'rgba(40,23,38,.68)',
+      y + i * (wordSize + 3),
+      `400 ${wordSize}px Arial, Helvetica, sans-serif`,
+      isActive ? 'rgba(111,98,106,.78)' : 'rgba(111,98,106,.62)',
       'rgba(251,247,246,.9)',
-      2.4
+      2.2
     );
   });
   if(isActive){
@@ -990,33 +1052,49 @@ function localRect(el, container){
     bottom: er.bottom - cr.top
   };
 }
+function syncBurstTypeScale(burst){
+  const title = burst.querySelector('.ex-title');
+  if(!title) return;
+  const titleSize = parseFloat(getComputedStyle(title).fontSize) || 48;
+  burst.style.setProperty('--ex-title', `${titleSize}px`);
+  burst.querySelectorAll('.ex-word').forEach(el => { el.style.fontSize = ''; });
+}
 function fitBurstTitle(burst){
   const title = burst.querySelector('.ex-title');
   if(!title) return;
   title.style.fontSize = '';
-  const bgNum = burst.querySelector('.ex-bg-num');
-  const numW = bgNum ? bgNum.getBoundingClientRect().width : 0;
-  const maxW = Math.max(140, burst.clientWidth - numW - 32);
+  const headText = burst.querySelector('.ex-head-text');
+  const numGap = headText ? parseFloat(getComputedStyle(headText).marginLeft) || 88 : 88;
+  const maxW = Math.max(120, burst.clientWidth - numGap - 16);
   let size = parseFloat(getComputedStyle(title).fontSize);
-  for(let i = 0; i < 48 && title.scrollWidth > maxW && size > 18; i++){
+  const minTitle = 26;
+  for(let i = 0; i < 48 && title.scrollWidth > maxW && size > minTitle; i++){
     size -= 1;
     title.style.fontSize = `${size}px`;
   }
+  syncBurstTypeScale(burst);
+}
+function reserveBgNumSpace(burst){
+  const bgNum = burst.querySelector('.ex-bg-num');
+  const headText = burst.querySelector('.ex-head-text');
+  if(!bgNum || !headText) return;
+  const digits = String(bgNum.textContent || '').trim().length || 2;
+  const numW = bgNum.getBoundingClientRect().width;
+  const reserve = Math.max(numW, digits * 36, 68) + 14;
+  const gap = `${Math.ceil(reserve)}px`;
+  headText.style.marginLeft = gap;
+  burst.style.setProperty('--bg-num-gap', gap);
 }
 function layoutExplodeBurst(burst){
   const title = burst.querySelector('.ex-title');
+  const headText = burst.querySelector('.ex-head-text');
   if(title) title.style.paddingLeft = '';
+  if(headText) headText.style.marginLeft = '';
+  reserveBgNumSpace(burst);
   fitBurstTitle(burst);
-  const bgNum = burst.querySelector('.ex-bg-num');
-  if(title && bgNum){
-    const tr = localRect(title, burst);
-    const br = localRect(bgNum, burst);
-    if(rectsOverlap(tr, br, 4)){
-      const push = br.right - tr.left + 6;
-      if(push > 0) title.style.paddingLeft = `${push}px`;
-    }
-  }
+  reserveBgNumSpace(burst);
   fitBurstTitle(burst);
+  syncBurstTypeScale(burst);
 }
 function enforceTitleClearance(layer, burst){
   const titleBottom = getTitleSafeBottom();
