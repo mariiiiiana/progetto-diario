@@ -301,9 +301,18 @@ const RELIGION_REF_RE = /\b(?:dio|gesu|gesù|jesus|cristo|christ|god|madonna|rel
 function isReligionRef(text){
   return RELIGION_REF_RE.test(deaccent(normTheme(text)));
 }
+const WEEKDAY_THEME_RE = /\b(?:lunedi|martedi|mercoledi|giovedi|venerdi|sabato|domenica|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i;
+const GENERIC_THEME_RE = /\b(?:autostima|self-esteem|insicurezza|insecurity|ironia|irony|crispo|crisp|spesa|spending|thrifting|caffeina|caffeine|spice|male|non|esami|exams|camminata|walk)\b/i;
 function isThemeNoise(theme){
   const k = deaccent(normTheme(theme));
-  return !k || k === ':' || k.length < 2 || /^\d{1,2}\s+\w+\s+\d{4}$/.test(k) || isReligionRef(k) || /\binfelicita\b/.test(k);
+  return !k || k === ':' || k.length < 2
+    || /^\d{1,2}\s+\w+\s+\d{4}$/.test(k)
+    || isReligionRef(k)
+    || /\binfelicita\b/.test(k)
+    || WEEKDAY_THEME_RE.test(k)
+    || GENERIC_THEME_RE.test(k)
+    || /[{}\[\]":]/.test(k)
+    || k.length > 48;
 }
 function deaccent(value){
   return String(value || '').normalize('NFD').replace(/\p{M}/gu, '');
@@ -360,7 +369,7 @@ function themeLabel(theme){
   if(direct) return direct;
   return translateAllTokens(k) || k;
 }
-const BANNED_WORD_LABELS = new Set(['unhappiness', 'world', 'can']);
+const BANNED_WORD_LABELS = new Set(['unhappiness', 'world', 'can', 'at least']);
 function wordLabel(word){
   const k = String(word || '').toLowerCase().trim();
   if(!k) return word;
@@ -417,18 +426,52 @@ function blockSizeForCount(count, baseW, baseH, minCount, maxCount){
 const WORD_STOP = new Set('il lo la i gli le un una uno di a da in con su per che non mi io tu si ma se come più anche questo questa sono era essere ho hai stato stata del della dei delle al nel nella nei nelle al allo alla alle the and can but for you your was were have has had this that with from they them their what when where why how all any out our just not are been being would could should about into over after before than then very much many some such only other another while during through because until unless since though although anche ancora sempre mai già qui lì dove quando perché perchè quindi cioè tipo proprio niente nulla tutto tutta tutti tutte molto poco troppo bene male così cosi cosa cose sto sta stai stiamo state stati fat get got want feel like need know think going gonna dont im ive its thats theres wasnt isnt cant wont myself yourself himself herself itself ourselves themselves hate fucking fuck shit damn day days keep still even really maybe something someone anything everything nothing outdoor indoor body disgusting anymore passi passo don more faccio fare video tag support does not'.split(/\s+/));
 const EMOTION_WORD_OVERRIDES = {
   speranza: ['possible', 'life', 'starting', 'good', 'change'],
-  tristezza: ['alone', 'emptiness', 'crying', 'memory', 'loss']
+  tristezza: ['alone', 'emptiness', 'crying', 'memory', 'loss'],
+  sollievo: ['return', 'home', 'goodbye', 'pause', 'calm']
+};
+const EMOTION_THEME_OVERRIDES = {
+  tristezza: ['isolation', 'memory', 'home'],
+  sollievo: ['autonomy', 'return home', 'pause'],
+  stress: ['routine', 'work', 'tiredness'],
+  serenita: ['rest', 'calm', 'free day'],
+  malinconia: ['memory', 'distance', 'night'],
+  desiderio: ['departure', 'future', 'motivation'],
+  frustrazione: ['self-criticism', 'disappointment', 'study'],
+  speranza: ['motivation', 'change', 'health'],
+  rabbia: ['conflict', 'hate', 'humiliation'],
+  gioia: ['freedom', 'health', 'good day'],
+  incertezza: ['doubt', 'confusion', 'choices'],
+  entusiasmo: ['excitement', 'new beginnings', 'energy'],
+  vulnerabilita: ['humiliation', 'exposure', 'fragility'],
+  gratitudine: ['reflection', 'support', 'gratitude'],
+  solitudine: ['isolation', 'abandonment', 'home'],
+  sorpresa: ['unexpected', 'recovery', 'moment'],
+  ansia: ['worry', 'control', 'future'],
+  paura: ['fear', 'uncertainty', 'body'],
+  nostalgia: ['memory', 'past', 'distance'],
+  amore: ['relationships', 'family', 'connection'],
+  fiducia: ['trust', 'exams', 'relationships'],
+  vergogna: ['humiliation', 'body image', 'exposure'],
+  colpa: ['guilt', 'self-blame', 'regret'],
+  rimpianto: ['regret', 'past', 'loss']
 };
 const FALLBACK_WORDS = {
-  tristezza:'alone · emptiness · crying · memory · loss', stress:'study · list · waiting', malinconia:'night · void · distance',
+  tristezza:'alone · emptiness · crying · memory · loss', sollievo:'return · home · goodbye · pause · calm', stress:'study · list · waiting', malinconia:'night · void · distance',
   frustrazione:'again · enough · loop', ansia:'tomorrow · body · waiting', solitudine:'home · room · silence',
   desiderio:'tomorrow · going out · again', speranza:'possible · life · starting · good · change'
 };
 const FALLBACK_THEMES = {
-  tristezza:'isolation, memory, home', stress:'routine, work, study',
-  malinconia:'memory, distance, night', frustrazione:'insecurity, study, loop',
-  ansia:'future, control, waiting', solitudine:'home, relationships, room',
-  desiderio:'future, motivation, going out'
+  tristezza:'isolation, memory, home', sollievo:'autonomy, return home, pause',
+  stress:'routine, work, tiredness', serenita:'rest, calm, free day',
+  malinconia:'memory, distance, night', desiderio:'departure, future, motivation',
+  frustrazione:'self-criticism, disappointment, study', speranza:'motivation, change, health',
+  rabbia:'conflict, hate, humiliation', gioia:'freedom, health, good day',
+  incertezza:'doubt, confusion, choices', entusiasmo:'excitement, new beginnings, energy',
+  vulnerabilita:'humiliation, exposure, fragility', gratitudine:'reflection, support, gratitude',
+  solitudine:'isolation, abandonment, home', sorpresa:'unexpected, recovery, moment',
+  ansia:'worry, control, future', paura:'fear, uncertainty, body',
+  nostalgia:'memory, past, distance', amore:'relationships, family, connection',
+  fiducia:'trust, exams, relationships', vergogna:'humiliation, body image, exposure'
 };
 const FALLBACK_COUNTS = {tristezza:240,stress:159,sollievo:180,frustrazione:113,malinconia:128,incertezza:124,desiderio:189,rabbia:110,vulnerabilita:95,solitudine:86};
 
@@ -514,7 +557,8 @@ const EXTRA_WORD_STOP = new Set([
   'smettere','palestra','workout','caloric','ate','eat','eats','eaten','food','foods','hunger','hungry','fast','fasted',
   'thank','god','long','barely','year','alone',
   'slay','dopo','vedo','vedere','vede','sees','after',
-  'mondo','world','riesco','infelicita','infelicità','unhappiness'
+  'mondo','world','riesco','infelicita','infelicità','unhappiness',
+  'almeno','least'
 ].map(w => w.normalize('NFD').replace(/\p{M}/gu, '')));
 const RELIGION_WORD_STOP = new Set([
   'dio','gesu','gesù','jesus','cristo','christ','god','madonna','religione','religion','fede','faith',
@@ -629,7 +673,9 @@ function buildEmotionData(entries){
     const words = entries
       ? (EMOTION_WORD_OVERRIDES[id] || topWordsForEmotion(wordEntries, id).map(wordLabel).filter(Boolean))
       : [];
-    const themes = entries ? topThemesForEmotion(wordEntries, id).map(themeLabel).filter(Boolean) : [];
+    const themes = entries
+      ? (EMOTION_THEME_OVERRIDES[id] || topThemesForEmotion(wordEntries, id).map(themeLabel).filter(Boolean))
+      : [];
     const fallbackWords = (FALLBACK_WORDS[id] || '—').split(' · ').filter(w => w && w !== '—');
     const fallbackThemes = (FALLBACK_THEMES[id] || '—').split(', ').filter(t => t && t !== '—');
     result[id] = {
@@ -982,7 +1028,7 @@ function draw(t){
     const isActive = activeBlock === b;
     const isRelated = relatedIds.includes(b.id);
     const alpha = !activeBlock ? .94 : isActive ? 1 : isRelated ? .52 : .18;
-    if(!activeBlock || isRelated) drawTopLabel(b, p, alpha, isRelated);
+    if((!activeBlock || isRelated) && b !== activeBlock) drawTopLabel(b, p, alpha, isRelated);
   });
   ctx.restore();
   positionText(t);
@@ -993,6 +1039,112 @@ function currentBlock(id){ const active = selected || hover; return active && ac
 function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 function rectsOverlap(a, b, pad = 8){
   return !(a.right + pad < b.left || a.left > b.right + pad || a.bottom + pad < b.top || a.top > b.bottom + pad);
+}
+function blockScreenRect(b, t, pad = 16){
+  const p = pts(b, t);
+  const ptsList = [p.N, p.E, p.S, p.W, p.left[2], p.left[3], p.right[2], p.right[3]];
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+  ptsList.forEach(pt => {
+    const sx = originX + pt.x * mapScale;
+    const sy = originY + pt.y * mapScale;
+    left = Math.min(left, sx);
+    top = Math.min(top, sy);
+    right = Math.max(right, sx);
+    bottom = Math.max(bottom, sy);
+  });
+  return { left: left - pad, top: top - pad, right: right + pad, bottom: bottom + pad };
+}
+function allBlockScreenRects(t, skipBlock){
+  return blocks.filter(b => b !== skipBlock).map(b => blockScreenRect(b, t));
+}
+function burstOverlapsAny(rect, obstacles, pad = 10){
+  return obstacles.some(o => rectsOverlap(rect, o, pad));
+}
+function pickWhiteSpacePosition(block, layer, burst, t){
+  const bounds = getCanvasTextBounds();
+  const obstacles = allBlockScreenRects(t, block);
+  const idx = Math.max(0, blocks.indexOf(block));
+  const slots = [0.15, 0.27, 0.39, 0.51, 0.63, 0.75, 0.86];
+  const baseY = bounds.top + (bounds.bottom - bounds.top) * slots[idx % slots.length];
+  const span = bounds.right - bounds.left;
+  const preferRight = block.cx < 320;
+  const preferLeft = block.cx > 500;
+  const xCandidates = preferRight
+    ? [bounds.left + span * 0.84, bounds.left + span * 0.76, bounds.right - 36]
+    : preferLeft
+      ? [bounds.left + span * 0.16, bounds.left + span * 0.24, bounds.left + 36]
+      : (idx % 2
+        ? [bounds.left + span * 0.84, bounds.left + span * 0.76]
+        : [bounds.left + span * 0.16, bounds.left + span * 0.24]);
+  const yCandidates = [baseY, baseY - 72, baseY + 72, bounds.top + (bounds.bottom - bounds.top) * 0.2, bounds.top + (bounds.bottom - bounds.top) * 0.82];
+  let best = null;
+  let bestScore = -Infinity;
+  for(const x of xCandidates){
+    for(const y of yCandidates){
+      layer.style.left = `${x}px`;
+      layer.style.top = `${y}px`;
+      layer.style.transform = 'translate(-50%,0)';
+      layoutExplodeBurst(burst);
+      const r = burstContentRect(burst);
+      if(r.left < bounds.left || r.right > bounds.right || r.top < bounds.top || r.bottom > bounds.bottom) continue;
+      if(burstOverlapsAny(r, obstacles)) continue;
+      const boxRect = blockScreenRect(block, t, 8);
+      const boxCx = (boxRect.left + boxRect.right) * 0.5;
+      const textCx = (r.left + r.right) * 0.5;
+      const separation = Math.abs(textCx - boxCx);
+      const edgeBonus = preferRight ? (bounds.right - r.right) : preferLeft ? (r.left - bounds.left) : Math.min(r.left - bounds.left, bounds.right - r.right);
+      const score = separation + edgeBonus * 0.35 - Math.abs(((r.top + r.bottom) * 0.5) - y) * 0.08;
+      if(score > bestScore){
+        bestScore = score;
+        best = { x, y };
+      }
+    }
+  }
+  if(best) return best;
+  const boxRect = blockScreenRect(block, t, 8);
+  const boxCx = (boxRect.left + boxRect.right) * 0.5;
+  const canvasCx = (bounds.left + bounds.right) * 0.5;
+  return {
+    x: boxCx < canvasCx ? bounds.left + span * 0.84 : bounds.left + span * 0.16,
+    y: clamp(baseY, bounds.top + 8, bounds.bottom - 120)
+  };
+}
+function nudgeAwayFromBlocks(layer, burst, obstacles, bounds){
+  if(!obstacles.length) return;
+  for(let i = 0; i < 18; i++){
+    layoutExplodeBurst(burst);
+    const r = burstContentRect(burst);
+    let dx = 0;
+    let dy = 0;
+    obstacles.forEach(o => {
+      if(!rectsOverlap(r, o, 12)) return;
+      const pushL = r.right - o.left + 14;
+      const pushR = o.right - r.left + 14;
+      const pushT = r.bottom - o.top + 14;
+      const pushB = o.bottom - r.top + 14;
+      if(Math.min(pushL, pushR) < Math.min(pushT, pushB)){
+        dx += pushL < pushR ? -pushL : pushR;
+      } else {
+        dy += pushT < pushB ? -pushT : pushB;
+      }
+    });
+    if(!dx && !dy) break;
+    let x = (parseFloat(layer.style.left) || 0) + dx;
+    let y = (parseFloat(layer.style.top) || 0) + dy;
+    layer.style.left = `${x}px`;
+    layer.style.top = `${y}px`;
+    layoutExplodeBurst(burst);
+    const r2 = burstContentRect(burst);
+    if(r2.left < bounds.left) x += bounds.left - r2.left;
+    if(r2.right > bounds.right) x += bounds.right - r2.right;
+    if(r2.top < bounds.top) y += bounds.top - r2.top;
+    if(r2.bottom > bounds.bottom) y += bounds.bottom - r2.bottom;
+    layer.style.left = `${x}px`;
+    layer.style.top = `${y}px`;
+  }
 }
 function getTitleSafeBottom(){
   const el = document.querySelector('.title');
@@ -1123,10 +1275,11 @@ function nudgeLayerIntoBounds(layer, burst, bounds, x, y){
   }
   return { x, y, fits: contentShiftForBounds(layer, burst, bounds).fits };
 }
-function fitExplodeToCanvas(layer, x, y){
+function fitExplodeToCanvas(layer, x, y, t = 0, activeBlock = null){
   const bounds = getCanvasTextBounds();
   const burst = layer.querySelector('.ex-burst');
   if(!burst) return { x, y };
+  const obstacles = activeBlock ? allBlockScreenRects(t, activeBlock) : [];
 
   const availW = bounds.right - bounds.left;
   const availH = bounds.bottom - bounds.top;
@@ -1156,6 +1309,13 @@ function fitExplodeToCanvas(layer, x, y){
     burst.style.transform = `scale(${scale.toFixed(3)})`;
   }
 
+  nudgeAwayFromBlocks(layer, burst, obstacles, bounds);
+  x = parseFloat(layer.style.left) || x;
+  y = parseFloat(layer.style.top) || y;
+  nudgeLayerIntoBounds(layer, burst, bounds, x, y);
+  enforceTitleClearance(layer, burst);
+  x = parseFloat(layer.style.left) || x;
+  y = parseFloat(layer.style.top) || y;
   nudgeLayerIntoBounds(layer, burst, bounds, x, y);
   return { x, y };
 }
@@ -1202,13 +1362,12 @@ function positionText(t){
   if(hoverNote) hoverNote.style.opacity = selected ? '.42' : '0';
   const data = patternData[active.id];
   if(!data) return;
-  const p = pts(active, t);
-  const top = boxTopCenter(p);
-  const screenX = originX + top.x * mapScale;
-  const screenY = Math.max(originY + top.y * mapScale, getTitleSafeBottom() + 28);
   explodeLayer.innerHTML = renderExplodedBurst(data, active, mapScale);
   const burst = explodeLayer.querySelector('.ex-burst');
-  if(burst) fitExplodeToCanvas(explodeLayer, screenX, screenY);
+  if(burst){
+    const anchor = pickWhiteSpacePosition(active, explodeLayer, burst, t);
+    fitExplodeToCanvas(explodeLayer, anchor.x, anchor.y, t, active);
+  }
   explodeLayer.classList.add('active');
 }
 canvas.addEventListener('mousemove', e=>{
