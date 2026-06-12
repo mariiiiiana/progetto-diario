@@ -21,17 +21,26 @@ async function loadDiaryData() {
     diaryData = await response.json();
     syncEmotionCatalog(diaryData);
     patternData = buildEmotionData(diaryData);
-    rebuildBaseBlocks();
-    resizeCanvas();
+    if(!window.__EMOTION_DETAIL_PAGE__){
+      rebuildBaseBlocks();
+      resizeCanvas();
+    }
   } catch (error) {
     console.error("Diary loading error:", error);
   }
 }
 
-loadDiaryData();
+if(!window.__EMOTION_DETAIL_PAGE__) loadDiaryData();
 
 const FACE_TILE_BLEED = 1.08;
 const FACE_TILE_OVERLAP = 1.25;
+const BLOCK_BREATHE_AMP = 0.026;
+const BLOCK_ISO_TILT_AMP = 0.017;
+const BLOCK_H_PULSE_AMP = 0.02;
+const BLOCK_HOVER_LIFT = 6.2;
+const BLOCK_HOVER_TILT_X = 8.5;
+const BLOCK_HOVER_TILT_Y = 5;
+const BLOCK_RELATED_LIFT = 1.8;
 const emotionStrips = {};
 let emotionImagesReady = false;
 function loadImage(src){
@@ -82,7 +91,7 @@ function emotionStripMeta(id){
 }
 const emotionImagesBoot = loadEmotionImages();
 const canvas = document.getElementById('iso');
-const ctx = canvas.getContext('2d');
+const ctx = canvas ? canvas.getContext('2d') : null;
 const explodeLayer = document.getElementById('explodeLayer');
 const links = document.getElementById('links');
 const hoverNote = document.getElementById('hoverNote');
@@ -91,7 +100,7 @@ let explodeLayout = { key: null };
 
 // Each room is a unique emotional microsystem — balanced between lighter and heavier poles.
 const POSITIVE_EMOTIONS = ['sollievo','serenita','desiderio','speranza','gioia','entusiasmo','gratitudine','amore','fiducia','sorpresa'];
-const NEGATIVE_EMOTIONS = ['tristezza','stress','malinconia','frustrazione','incertezza','rabbia','vulnerabilita','solitudine','ansia','paura','vergogna','colpa','rimpianto','nostalgia'];
+const NEGATIVE_EMOTIONS = ['tristezza','stress','malinconia','frustrazione','incertezza','rabbia','vulnerabilita','solitudine','ansia','paura','vergogna','colpa','rimpianto','nostalgia','noia'];
 const FALLBACK_TOP_EMOTIONS = ['tristezza','sollievo','stress','serenita','malinconia','desiderio','frustrazione','speranza','rabbia','gioia','incertezza','entusiasmo','vulnerabilita','gratitudine','solitudine','ansia','paura','nostalgia','amore'];
 let topEmotions = [...FALLBACK_TOP_EMOTIONS];
 
@@ -104,87 +113,109 @@ const EMOTION_LABELS = {
   vergogna: 'shame', colpa: 'guilt', rimpianto: 'regret', noia: 'boredom'
 };
 const THEME_LABELS = {
-  'ansia per il futuro': 'anxiety about the future', 'ansia per il peso': 'anxiety about weight',
-  'ansia per l\'esame': 'anxiety about the exam', 'ansia sociale': 'social anxiety',
-  'ansietà per il futuro': 'anxiety about the future', 'ansietà per la salute fisica': 'anxiety about physical health',
-  'ansietà per la vita personale': 'anxiety about personal life', 'controllo alimentare': 'food control',
-  'autocontrollo alimentare': 'food self-control', 'controllo del peso': 'weight control',
-  'controllo della dieta': 'diet control', 'controllo della fame': 'hunger control',
-  'controllo dell\'alimentazione': 'eating control', 'controllo dell\'ansia': 'anxiety control',
-  'controllo degli impulsi alimentari': 'control of food impulses', 'controllo delle emozioni': 'emotion control',
-  'controllo emotivo': 'emotional control', 'controllo personale': 'personal control',
-  'salute mentale': 'mental health', 'ritorno a casa': 'return home', 'peso corporeo': 'body weight',
-  'sentimento di inadeguatezza': 'feeling of inadequacy', 'sentimento di disperazione': 'feeling of despair',
-  'senso di disperazione': 'sense of despair', 'emozioni negative': 'negative emotions',
-  'emozione negativa': 'negative emotion', 'relazioni familiari': 'family relationships',
-  'attività fisica': 'physical activity', 'giornata positiva': 'good day', 'giorno libero': 'free day',
-  'camminata outdoor': 'outdoor walk', 'aspetto fisico': 'physical appearance', 'auto-critica': 'self-criticism',
-  'auto-umiliazione': 'self-humiliation', 'auto-ostilità': 'self-hostility', 'autoostilezza': 'self-hatred',
-  'autoostilezza negativa': 'negative self-hatred', 'autovalutazione negativa': 'negative self-assessment',
-  'autovalutazione personale': 'personal self-assessment', 'crisi emotiva': 'emotional crisis',
-  'crisi d\'ansia': 'anxiety crisis', 'crisi alimentare': 'food crisis', 'body image': 'body image',
+  'ansia per il futuro': 'dreading the future', 'ansia per il peso': 'weight anxiety',
+  'ansia per l\'esame': 'exam nerves', 'ansia sociale': 'social anxiety',
+  'ansietà per il futuro': 'dreading the future', 'ansietà per la salute fisica': 'health anxiety',
+  'ansietà per la vita personale': 'personal life worries', 'controllo alimentare': 'restrictive eating',
+  'autocontrollo alimentare': 'food discipline', 'controllo del peso': 'weight obsession',
+  'controllo della dieta': 'diet rules', 'controllo della fame': 'managing hunger',
+  'controllo dell\'alimentazione': 'eating control', 'controllo dell\'ansia': 'managing anxiety',
+  'controllo degli impulsi alimentari': 'resisting binge urges', 'controllo delle emozioni': 'keeping feelings in check',
+  'controllo emotivo': 'keeping emotions in check', 'controllo personale': 'self-control',
+  'salute mentale': 'mental health', 'ritorno a casa': 'going home', 'peso corporeo': 'body weight',
+  'sentimento di inadeguatezza': 'not measuring up', 'sentimento di disperazione': 'despair',
+  'senso di disperazione': 'despair', 'emozioni negative': 'dark moods',
+  'emozione negativa': 'bad mood', 'relazioni familiari': 'family dynamics',
+  'attività fisica': 'exercise', 'giornata positiva': 'good day', 'giorno libero': 'day off',
+  'camminata outdoor': 'walk outside', 'aspetto fisico': 'how I look', 'auto-critica': 'self-criticism',
+  'auto-ostilità': 'self-loathing', 'autoostilezza negativa': 'self-loathing',
+  'autovalutazione negativa': 'harsh self-judgment',
+  'autovalutazione personale': 'personal self-assessment', 'crisi emotiva': 'emotional breakdown',
+  'crisi d\'ansia': 'panic spiral', 'crisi alimentare': 'food falling apart', 'body image': 'body image',
   'binge eating': 'binge eating', 'burnout': 'burnout', 'anxiety': 'anxiety', 'boredom': 'boredom',
-  'aggressione verbale': 'verbal aggression', 'auto-sabotaggio': 'self-sabotage', 'body image': 'body image',
-  'controllo alimentare': 'food control', 'salute mentale': 'mental health', 'relazioni familiari': 'family relationships',
-  'attività fisica': 'physical activity', 'aspetto fisico': 'physical appearance', 'crisi emotiva': 'emotional crisis',
-  'crisi d\'ansia': 'anxiety crisis', 'crisi alimentare': 'food crisis', 'ritorno a casa': 'return home',
-  'peso corporeo': 'body weight', 'giornata positiva': 'good day', 'giorno libero': 'free day',
-  'camminata outdoor': 'outdoor walk', 'emozioni negative': 'negative emotions', 'emozione negativa': 'negative emotion',
-  'infelicità': 'unhappiness', 'infelicita': 'unhappiness', 'felicità': 'happiness', 'felicita': 'happiness',
-  'libertà': 'freedom', 'liberta': 'freedom', 'responsabilità': 'responsibility', 'responsabilita': 'responsibility',
+  'aggressione verbale': 'verbal aggression', 'auto-sabotaggio': 'self-sabotage',
+  'attivita fisica': 'exercise', 'peso corporeo': 'body weight', 'giornata positiva': 'good day',
+  'felicità': 'happiness', 'felicita': 'happiness', 'libertà': 'freedom', 'liberta': 'freedom',
   'infedeltà': 'infidelity', 'infedelta': 'infidelity', 'emotività': 'emotionality', 'emotivita': 'emotionality',
-  'inutilità': 'uselessness', 'inutilita': 'uselessness',
-  'sentimento di frustrazione': 'feeling of frustration', 'senso di colpa': 'sense of guilt',
+  'inutilità': 'pointlessness', 'inutilita': 'pointlessness',
+  'sentimento di frustrazione': 'frustration', 'senso di colpa': 'guilt',
   'lunedì': 'Monday', 'martedì': 'Tuesday', 'mercoledì': 'Wednesday', 'giovedì': 'Thursday',
   'venerdì': 'Friday', 'sabato': 'Saturday', 'domenica': 'Sunday',
   'lunedi': 'Monday', 'martedi': 'Tuesday', 'mercoledi': 'Wednesday', 'giovedi': 'Thursday',
   'venerdi': 'Friday', 'auto-odio': 'self-hatred', 'autolesionismo': 'self-harm',
-  'dell\'ansia': 'of anxiety', 'dell\'alimentazione': 'of eating', 'dell\'esame': 'of the exam',
-  'dell\'universita': 'of university', 'dell\'università': 'of university', 'dell\'obesita': 'of obesity',
-  'dell\'adolescenza': 'of adolescence', 'dell\'animo': 'of the soul', 'dell\'arte': 'of art', 'dell\'errore': 'of error',
-  'crisi emotiva': 'emotional crisis', 'controllo alimentare': 'food control', 'attivita fisica': 'physical activity',
-  'attività fisica': 'physical activity', 'peso corporeo': 'body weight', 'sentimento di inadeguatezza': 'feeling of inadequacy',
-  'salute mentale': 'mental health', 'sentimento di disperazione': 'feeling of despair', 'emozione negativa': 'negative emotion',
-  'emozioni negative': 'negative emotions', 'aspetto fisico': 'physical appearance', 'ritorno a casa': 'return home',
-  'tornare a casa': 'return home', 'rientro a casa': 'return home', 'senso di disperazione': 'sense of despair',
-  'disgusto per se stesso': 'disgust for oneself', 'disprezzo per se stesso': 'contempt for oneself',
-  'odio per se stesso': 'hatred for oneself', 'relazioni familiari': 'family relationships', 'senza scopo': 'without purpose',
-  'isolamento emotivo': 'emotional isolation', 'problemi personali': 'personal problems', 'pensieri negativi': 'negative thoughts',
-  'disturbo alimentare': 'eating disorder', 'disturbi alimentari': 'eating disorders', 'desiderio di morte': 'desire for death',
-  'giorno di riposo': 'rest day', 'senso di disconnessione': 'sense of disconnection', 'perdita di controllo': 'loss of control',
-  'spesa eccessiva': 'excessive spending', 'controllo personale': 'personal control', 'realizzazione personale': 'personal fulfillment',
-  'imperfezione personale': 'personal imperfection', 'abuso di cibo': 'food abuse', 'impatto emotivo': 'emotional impact',
-  'giorno della settimana': 'weekday', 'relazione con la madre': 'relationship with mother', 'ritorno alla routine': 'return to routine',
-  'senza speranza': 'without hope', 'camminata outdoor': 'outdoor walk', 'autocontrollo alimentare': 'food self-control',
-  'ansia di controllo': 'control anxiety', 'preoccupazione per l\'aspetto fisico': 'worry about physical appearance',
-  'presa di responsabilita': 'taking responsibility', 'presa di responsabilità': 'taking responsibility',
-  'sentimento di frustrazione': 'feeling of frustration', 'giornata sprecata': 'wasted day',
-  'sentimento di alienazione': 'feeling of alienation', 'nostalgia per l\'adolescenza': 'nostalgia for adolescence',
-  'bassa soddisfazione': 'low satisfaction', 'mancanza di motivazione': 'lack of motivation',
-  'repressione delle emozioni': 'repression of emotions', 'abuso di sostanze': 'substance abuse',
-  'sentimento di solitudine': 'feeling of loneliness', 'bruciore emotivo': 'emotional burning', 'senso di vuoto': 'sense of emptiness',
-  'rompimento di frustrazione': 'frustration outburst', 'tornata alla normalita': 'return to normality',
-  'tornata alla normalità': 'return to normality', 'gestione del tempo': 'time management',
-  'senso di tempo che scivola via': 'sense of time slipping away', 'modi di vita': 'ways of life',
-  'rifiuto di aiuto': 'refusal of help', 'mal di testa': 'headache', 'dolori generalizzati': 'generalized pains',
-  'paura della morte': 'fear of death', 'insicurezza sociale': 'social insecurity', 'senso di isolamento': 'sense of isolation',
-  'difficolta di adattamento': 'adaptation difficulty', 'difficoltà di adattamento': 'adaptation difficulty',
-  'insicurezza futura': 'future insecurity', 'senso di suffocamento': 'sense of suffocation',
-  'odio per la situazione attuale': 'hatred for the current situation', 'torna a torino': 'return to Turin',
-  'attrazione romantica': 'romantic attraction', 'mangiare troppo': 'eating too much',
-  'preoccupazione per la salute mentale': 'worry about mental health', 'fare cose belle': 'doing nice things',
-  'trasformazione personale': 'personal transformation', 'insicoltura emotiva': 'emotional shyness',
-  'paura dell\'esame': 'fear of the exam', 'aspettative non soddisfatte': 'unmet expectations',
-  'fine del fine settimana': 'end of the weekend', 'ansia per la fine del fine settimana': 'anxiety about the end of the weekend',
-  'lavori di gruppo': 'group work', 'relazione con giovanna': 'relationship with Giovanna',
-  'speranza di risoluzione del conflitto': 'hope for conflict resolution', 'disordinato alimentare': 'disordered eating',
-  'progetti di gruppo': 'group projects', 'organizzazione': 'organization', 'partenza': 'departure',
-  'aiuto': 'help', 'famiglia': 'family', 'depressione': 'depression', 'autostima': 'self-esteem',
-  'insicurezza': 'insecurity', 'disappunto': 'disappointment', 'infelicita': 'unhappiness', 'infelicità': 'unhappiness',
-  'motivazione': 'motivation', 'stanchezza': 'tiredness', 'preoccupazione': 'worry', 'autonomia': 'autonomy',
-  'angoscia': 'anguish', 'irritazione': 'irritation', 'dolore': 'pain', 'dimenticanza': 'forgetfulness',
-  'laurea': 'graduation', 'spesa': 'spending', 'obesita': 'obesity', 'obesità': 'obesity',
-  'responsabilita': 'responsibility', 'responsabilità': 'responsibility', 'liti con i coinquilini': 'arguments with roommates'
+  'disgusto per se stesso': 'self-disgust', 'disprezzo per se stesso': 'self-loathing',
+  'odio per se stesso': 'self-hatred', 'senza scopo': 'aimlessness',
+  'isolamento emotivo': 'feeling cut off', 'problemi personali': 'personal struggles', 'pensieri negativi': 'negative spiraling',
+  'disturbo alimentare': 'eating disorder', 'disturbi alimentari': 'eating disorders', 'desiderio di morte': 'suicidal thoughts',
+  'giorno di riposo': 'rest day', 'senso di disconnessione': 'feeling disconnected', 'perdita di controllo': 'losing control',
+  'spesa eccessiva': 'overspending', 'realizzazione personale': 'finding purpose',
+  'imperfezione personale': 'feeling flawed', 'abuso di cibo': 'bingeing', 'impatto emotivo': 'emotional toll',
+  'giorno della settimana': 'weekday', 'relazione con la madre': 'issues with mom', 'ritorno alla routine': 'back to routine',
+  'senza speranza': 'hopelessness', 'ansia di controllo': 'need for control',
+  'preoccupazione per l\'aspetto fisico': 'body image worries',
+  'presa di responsabilita': 'stepping up', 'presa di responsabilità': 'stepping up',
+  'giornata sprecata': 'day felt wasted',
+  'sentimento di alienazione': 'feeling alienated', 'nostalgia per l\'adolescenza': 'missing adolescence',
+  'bassa soddisfazione': 'underwhelmed', 'mancanza di motivazione': 'no drive left',
+  'repressione delle emozioni': 'bottling things up', 'abuso di sostanze': 'substance abuse',
+  'sentimento di solitudine': 'loneliness', 'bruciore emotivo': 'aching inside',
+  'senso di vuoto': 'emptiness', 'rompimento di frustrazione': 'snapping from frustration',
+  'tornata alla normalita': 'settling back in', 'tornata alla normalità': 'settling back in',
+  'gestione del tempo': 'juggling time',
+  'senso di tempo che scivola via': 'time slipping away', 'modi di vita': 'ways of living',
+  'rifiuto di aiuto': 'pushing help away', 'mal di testa': 'headache', 'dolori generalizzati': 'aches all over',
+  'paura della morte': 'fear of dying', 'insicurezza sociale': 'social anxiety',
+  'senso di isolamento': 'isolation', 'difficolta di adattamento': 'struggling to adjust',
+  'difficoltà di adattamento': 'struggling to adjust', 'insicurezza futura': 'uncertainty about the future',
+  'senso di suffocamento': 'feeling trapped', 'odio per la situazione attuale': 'hating how things are',
+  'torna a torino': 'back in Turin', 'attrazione romantica': 'crush', 'mangiare troppo': 'overeating',
+  'preoccupazione per la salute mentale': 'mental health worries', 'fare cose belle': 'trying to enjoy myself',
+  'trasformazione personale': 'trying to change', 'insicoltura emotiva': 'emotional guardedness',
+  'paura dell\'esame': 'exam dread', 'aspettative non soddisfatte': 'things fell short',
+  'fine del fine settimana': 'weekend ending', 'ansia per la fine del fine settimana': 'dreading Monday',
+  'lavori di gruppo': 'group projects',
+  'speranza di risoluzione del conflitto': 'hoping things resolve', 'disordinato alimentare': 'disordered eating',
+  'progetti di gruppo': 'group projects', 'organizzazione': 'getting organized', 'partenza': 'leaving',
+  'aiuto': 'asking for help', 'famiglia': 'family', 'depressione': 'depression', 'autostima': 'self-worth',
+  'insicurezza': 'self-doubt', 'disappunto': 'letdown', 'infelicita': 'misery', 'infelicità': 'misery',
+  'motivazione': 'drive', 'stanchezza': 'exhaustion', 'preoccupazione': 'worry', 'autonomia': 'independence',
+  'angoscia': 'dread', 'irritazione': 'irritation', 'dolore': 'hurt', 'dimenticanza': 'spacing out',
+  'laurea': 'graduation', 'spesa': 'shopping', 'obesita': 'obesity', 'obesità': 'obesity',
+  'responsabilita': 'responsibility', 'responsabilità': 'responsibility', 'liti con i coinquilini': 'roommate fights',
+  'tornare a casa': 'going home', 'rientro a casa': 'coming home',
+  'auto-umiliazione': 'tearing yourself down', 'autoostilezza': 'self-loathing',
+  'autovalutazione negativa': 'harsh self-judgment', 'autovalutazione': 'self-judgment',
+  'crisi emotiva': 'emotional breakdown', 'crisi d\'ansia': 'panic spiral', 'crisi alimentare': 'food falling apart',
+  'aspetto fisico': 'how I look', 'camminata': 'walking', 'camminata outdoor': 'walk outside',
+  'infotizione': 'crush', 'annoiosità': 'tedium', 'annoiosita': 'tedium',
+  'finalmente una lezione': 'finally a class', 'desiderio di cambiamento': 'wanting change',
+  'senso della vita': 'purpose in life', 'stagnazione emotiva': 'stuck emotionally',
+  'ripetizione': 'same old loop', 'insoddisfazione': 'not enough', 'confusione': 'mental fog',
+  'soddisfazione': 'contentment', 'università': 'college life', 'universita': 'college life',
+  'innamoramento': 'falling for someone', 'dissociazione': 'dissociation', 'disorientamento': 'disorientation',
+  'procrastinazione': 'procrastinating', 'inadeguatezza': 'not measuring up',
+  'autodisprezzo': 'self-loathing', 'autoconsapevolezza': 'self-awareness', 'autodisciplina': 'discipline',
+  'autocontrollo': 'self-control', 'autoaccettazione': 'self-acceptance', 'socializzazione': 'socializing',
+  'focalizzazione': 'hyperfocus', 'determinazione': 'determination', 'perdita di peso': 'weight loss',
+  'rispetto per se stesso': 'self-respect', 'flirt con ogni ragazzo carino che vede': 'crushes on cute guys',
+  'era ora': 'about time', 'sonnambulismo': 'sleepwalking', 'vita': 'life',
+  'amicizia problematica': 'strained friendship', 'amicizia universitaria': 'college friendships',
+  'senso di essere ingannato': 'feeling betrayed', 'arrivo dei cugini': 'cousins visiting',
+  'uso del telefono': 'too much screen time', 'cugini': 'cousins', 'ingannato': 'betrayed', uso: 'use'
+};
+const SEMANTIC_TAIL_LABELS = {
+  inadeguatezza: 'not measuring up', disperazione: 'despair', frustrazione: 'frustration', colpa: 'guilt',
+  solitudine: 'loneliness', alienazione: 'alienation', vuoto: 'emptiness', isolamento: 'isolation',
+  suffocamento: 'feeling trapped', disconnessione: 'feeling disconnected', ansia: 'anxiety',
+  calma: 'calm', felicita: 'happiness', felicità: 'happiness', disappunto: 'letdown',
+  motivazione: 'drive', scopo: 'purpose', normalita: 'normal life', normalità: 'normal life',
+  routine: 'routine', cambiamento: 'change', morte: 'death', controllo: 'control',
+  peso: 'weight', cibo: 'food', emozioni: 'feelings', vita: 'life', futuro: 'the future',
+  esame: 'exams', esami: 'exams', aspetto: 'appearance', salute: 'health', corpo: 'body',
+  adolescenza: 'being young', conflitto: 'the conflict', aiuto: 'help', tempo: 'time',
+  adattamento: 'adjusting', situazione: 'how things are', alimentazione: 'eating', fame: 'hunger',
+  impulsi: 'urges', 'impulsi alimentari': 'food urges', dieta: 'diet', 'peso corporeo': 'body weight',
+  'se stesso': 'yourself', 'se stessa': 'yourself'
 };
 const IT_WORDS = {
   ansia:'anxiety', ansietà:'anxiety', frustrazione:'frustration', autostima:'self-esteem', insicurezza:'insecurity',
@@ -434,8 +465,23 @@ function isReligionRef(text){
 }
 const WEEKDAY_THEME_RE = /\b(?:lunedi|martedi|mercoledi|giovedi|venerdi|sabato|domenica|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i;
 const GENERIC_THEME_RE = /\b(?:autostima|self-esteem|insicurezza|insecurity|ironia|irony|crispo|crisp|spesa|spending|thrifting|caffeina|caffeine|spice|male|non|esami|exams|camminata|walk)\b/i;
+const THEME_SOURCE_STOP = new Set([
+  'giovanna', 'relazione con giovanna', 'accollarsi', 'condizionamento',
+  'progresso', 'progressi', 'hobby', 'serata brutta'
+].map(k => deaccent(k)));
+const BANNED_THEME_LABELS = new Set([
+  'taking on', 'giovanna', 'conditioning', 'hobby', 'evening ugly',
+  'hobby evening ugly', 'progress', 'giacomo',
+  'friendship problematic', 'being tricked', 'arrival of the cousins', 'eating crisis',
+  'fighting food urges', 'uso of the phone', 'dynamic with giovanna', 'relationship with giovanna'
+]);
+function isBannedThemeLabel(label){
+  const k = String(label || '').toLowerCase().trim();
+  return !k || BANNED_THEME_LABELS.has(k);
+}
 function isThemeNoise(theme){
   const k = deaccent(normTheme(theme));
+  if(THEME_SOURCE_STOP.has(k)) return true;
   return !k || k === ':' || k.length < 2
     || /^\d{1,2}\s+\w+\s+\d{4}$/.test(k)
     || isReligionRef(k)
@@ -451,9 +497,29 @@ function deaccent(value){
 function themeKey(theme){
   return normTheme(theme).replace(/\s*\(\d+\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
 }
+function themeDisplayKey(theme){
+  return deaccent(themeKey(theme));
+}
+function dedupeThemes(themes){
+  const seen = new Set();
+  return themes.filter(theme => {
+    const key = themeDisplayKey(theme);
+    if(!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 function isEmotionTheme(theme){
   const k = deaccent(themeKey(theme));
-  return !!k && EMOTION_THEME_STOP.has(k);
+  if(!k) return false;
+  if(EMOTION_THEME_STOP.has(k)) return true;
+  const tokens = k.split(/\s+/).filter(Boolean);
+  if(tokens.length === 1 && EMOTION_THEME_STOP.has(tokens[0])) return true;
+  if(tokens.length === 2 && EMOTION_THEME_STOP.has(tokens[0])
+    && /^(?:negativa?|negativo|negative)$/i.test(tokens[1])) return true;
+  const senseTail = k.match(/^(?:senso|sentimento|feeling|sense)\s+(?:di|of|del|della|delle|dei|degli)\s+(.+)$/);
+  if(senseTail && EMOTION_THEME_STOP.has(deaccent(senseTail[1].trim()))) return true;
+  return false;
 }
 const NEGATIVE_THEME_RE = /\b(?:inutil\w*|useless\w*|palle|annoyance|fastidio|fastidi\w*|nulla|nothing|repressione|disperazione|despair|senso di colpa|worthless|vuoto|void|morte|death|suicid\w*|odio|hatred|schifo|disgust|depressione|depression|autoostile\w*|auto-ostile\w*|autodisprezzo|self-hatred|crisi emotiva|emotional crisis|infelic\w*|unhappiness|disperazione|desperation|colpa|guilt|vergogna|shame|isolamento|isolation)\b/i;
 const POSITIVE_THEME_RE = /\b(?:gioia|joy|felic\w*|happiness|gratitudine|gratitude|speranza|hope|serenit\w*|serenity|entusiasmo|enthusiasm|eccitazione|excitement|amore|love|fiducia|trust|rilassamento|relaxation|giornata positiva|good day|giorno di riposo|rest day)\b/i;
@@ -480,10 +546,22 @@ function lookupEnglishToken(key){
   const k = deaccent(String(key || '').toLowerCase().trim());
   if(!k) return '';
   return lookupLabel(THEME_LABELS, k)
+    || lookupLabel(SEMANTIC_TAIL_LABELS, k)
     || lookupLabel(WORD_LABELS, k)
     || lookupLabel(EMOTION_LABELS, k)
     || lookupLabel(IT_WORDS, k)
     || '';
+}
+function semanticPart(text, depth = 0){
+  if(depth > 5) return '';
+  const raw = themeKey(text);
+  if(!raw) return '';
+  const k = deaccent(raw);
+  const direct = lookupLabel(THEME_LABELS, k) || lookupLabel(SEMANTIC_TAIL_LABELS, k);
+  if(direct) return direct;
+  const token = lookupEnglishToken(k);
+  if(token && !looksItalian(token)) return token;
+  return '';
 }
 function translateItalianPhrase(text, depth = 0){
   if(depth > 5) return '';
@@ -491,72 +569,126 @@ function translateItalianPhrase(text, depth = 0){
   if(!raw) return '';
   const direct = lookupLabel(THEME_LABELS, deaccent(raw)) || lookupLabel(THEME_LABELS, raw);
   if(direct) return direct;
-  const part = (s) => {
-    const out = englishLabelInner(s, depth + 1);
-    return out || '';
-  };
+  const part = (s) => semanticPart(s, depth + 1) || englishLabelInner(s, depth + 1) || '';
   const rules = [
-    [/^senso di (.+)$/i, m => `sense of ${part(m[1])}`],
-    [/^sentimento di (.+)$/i, m => `feeling of ${part(m[1])}`],
-    [/^mancanza di (.+)$/i, m => `lack of ${part(m[1])}`],
-    [/^perdita di (.+)$/i, m => `loss of ${part(m[1])}`],
-    [/^gestione del(?:la|lo|le|li|gli)?\s+(.+)$/i, m => `management of ${part(m[1])}`],
-    [/^abuso di (.+)$/i, m => `abuse of ${part(m[1])}`],
-    [/^paura dell(?:a|')(.+)$/i, m => `fear of ${part(m[1])}`],
-    [/^paura del(?:la|lo|li|gli)?\s+(.+)$/i, m => `fear of the ${part(m[1])}`],
-    [/^paura di (.+)$/i, m => `fear of ${part(m[1])}`],
-    [/^ansia per (?:la|il|lo|i|gli|le|l')(.+)$/i, m => `anxiety about ${part(m[1])}`],
-    [/^ansia di (.+)$/i, m => `anxiety about ${part(m[1])}`],
-    [/^preoccupazione per (?:la|il|lo|l')(.+)$/i, m => `worry about ${part(m[1])}`],
-    [/^odio per (?:la|il|lo|l')(.+)$/i, m => `hatred for the ${part(m[1])}`],
-    [/^odio per (.+)$/i, m => `hatred for ${part(m[1])}`],
-    [/^disgusto per (.+)$/i, m => `disgust for ${part(m[1])}`],
-    [/^disprezzo per (.+)$/i, m => `contempt for ${part(m[1])}`],
-    [/^nostalgia per (?:la|il|l')(.+)$/i, m => `nostalgia for ${part(m[1])}`],
-    [/^giorno di (.+)$/i, m => `${part(m[1])} day`],
+    [/^senso di essere (.+)$/i, m => /ingannat/i.test(m[1]) ? 'feeling betrayed' : `feeling ${part(m[1])}`],
+    [/^senso di (.+)$/i, m => part(m[1])],
+    [/^sentimento di (.+)$/i, m => part(m[1])],
+    [/^senso della (.+)$/i, m => /vita/i.test(m[1]) ? 'purpose in life' : part(m[1])],
+    [/^mancanza di (.+)$/i, m => /motivazione/i.test(m[1]) ? 'no drive left' : (part(m[1]) ? `missing ${part(m[1])}` : '')],
+    [/^perdita di (.+)$/i, m => {
+      if(/controllo/i.test(m[1])) return 'losing control';
+      if(/peso/i.test(m[1])) return 'weight loss';
+      const s = part(m[1]);
+      return s ? `losing ${s}` : '';
+    }],
+    [/^gestione del(?:la|lo|le|li|gli)?\s+(.+)$/i, m => /tempo/i.test(m[1]) ? 'juggling time' : (part(m[1]) ? `managing ${part(m[1])}` : '')],
+    [/^abuso di (.+)$/i, m => /cibo/i.test(m[1]) ? 'bingeing' : (part(m[1]) ? `misusing ${part(m[1])}` : '')],
+    [/^paura dell(?:a|')(.+)$/i, m => `dreading ${part(m[1])}`],
+    [/^paura del(?:la|lo|li|gli)?\s+(.+)$/i, m => `afraid of ${part(m[1])}`],
+    [/^paura di (.+)$/i, m => /morte/i.test(m[1]) ? 'fear of dying' : `afraid of ${part(m[1])}`],
+    [/^ansia per (?:la|il|lo|i|gli|le|l')(.+)$/i, m => `anxious about ${part(m[1])}`],
+    [/^ansia di (.+)$/i, m => /controllo/i.test(m[1]) ? 'need for control' : `anxious about ${part(m[1])}`],
+    [/^preoccupazione per (?:la|il|lo|l')(.+)$/i, m => `worried about ${part(m[1])}`],
+    [/^odio per (?:la|il|lo|l')(.+)$/i, m => /situazione attuale/i.test(m[0]) ? 'hating how things are' : `hating ${part(m[1])}`],
+    [/^odio per (.+)$/i, m => /se stess/i.test(m[1]) ? 'self-hatred' : `hating ${part(m[1])}`],
+    [/^disgusto per (.+)$/i, m => /se stess/i.test(m[1]) ? 'self-disgust' : `disgusted with ${part(m[1])}`],
+    [/^disprezzo per (.+)$/i, m => /se stess/i.test(m[1]) ? 'self-loathing' : `contempt for ${part(m[1])}`],
+    [/^nostalgia per (?:la|il|l')(.+)$/i, m => /adolescenza/i.test(m[1]) ? 'missing adolescence' : `nostalgia for ${part(m[1])}`],
+    [/^giorno di (.+)$/i, m => /riposo/i.test(m[1]) ? 'rest day' : `${part(m[1])} day`],
     [/^giorno del(?:la)?\s+(.+)$/i, m => `${part(m[1])} day`],
-    [/^mal di (.+)$/i, m => `${part(m[1])} ache`],
-    [/^senza (.+)$/i, m => `without ${part(m[1])}`],
-    [/^difficolta di (.+)$/i, m => `difficulty of ${part(m[1])}`],
-    [/^difficoltà di (.+)$/i, m => `difficulty of ${part(m[1])}`],
-    [/^desiderio di (.+)$/i, m => `desire for ${part(m[1])}`],
-    [/^repressione delle (.+)$/i, m => `repression of ${part(m[1])}`],
-    [/^controllo dell(?:a|')(.+)$/i, m => `control of ${part(m[1])}`],
-    [/^controllo del(?:la|lo|li)?\s+(.+)$/i, m => `control of the ${part(m[1])}`],
-    [/^ritorno a(?:lla)?\s+(.+)$/i, m => `return to ${part(m[1])}`],
-    [/^tornare a (.+)$/i, m => `return to ${part(m[1])}`],
-    [/^rientro a (.+)$/i, m => `return to ${part(m[1])}`],
-    [/^torna a (.+)$/i, m => `return to ${part(m[1])}`],
-    [/^relazione con (?:la|il|lo|l')?(.+)$/i, m => `relationship with ${part(m[1])}`],
-    [/^relazioni (.+)$/i, m => `${part(m[1])} relationships`],
-    [/^problemi (.+)$/i, m => `${part(m[1])} problems`],
-    [/^pensieri (.+)$/i, m => `${part(m[1])} thoughts`],
-    [/^emozioni (.+)$/i, m => `${part(m[1])} emotions`],
-    [/^emozione (.+)$/i, m => `${part(m[1])} emotion`],
-    [/^disturbo (.+)$/i, m => `${part(m[1])} disorder`],
-    [/^disturbi (.+)$/i, m => `${part(m[1])} disorders`],
-    [/^insicurezza (.+)$/i, m => `${part(m[1])} insecurity`],
-    [/^impatto (.+)$/i, m => `${part(m[1])} impact`],
-    [/^isolamento (.+)$/i, m => `${part(m[1])} isolation`],
-    [/^realizzazione (.+)$/i, m => `${part(m[1])} fulfillment`],
-    [/^trasformazione (.+)$/i, m => `personal ${part(m[1])}`],
-    [/^imperfezione (.+)$/i, m => `personal ${part(m[1])}`],
-    [/^presa di (.+)$/i, m => `taking ${part(m[1])}`],
-    [/^rifiuto di (.+)$/i, m => `refusal of ${part(m[1])}`],
-    [/^modi di (.+)$/i, m => `ways of ${part(m[1])}`],
-    [/^fare (.+)$/i, m => `doing ${part(m[1])}`],
-    [/^mangiare (.+)$/i, m => `eating ${part(m[1])}`],
-    [/^liti con (?:i|gli|le)?\s*(.+)$/i, m => `arguments with ${part(m[1])}`],
-    [/^flirt con (.+)$/i, m => `flirting with ${part(m[1])}`],
-    [/^spesa (.+)$/i, m => `${part(m[1])} spending`],
-    [/^aspettative (.+)$/i, m => `${part(m[1])} expectations`],
-    [/^speranza di (.+)$/i, m => `hope for ${part(m[1])}`],
-    [/^bruciore (.+)$/i, m => `${part(m[1])} burning`],
-    [/^dolori (.+)$/i, m => `${part(m[1])} pains`],
-    [/^senso di (.+) che (.+)$/i, m => `sense of ${part(m[1])} that ${part(m[2])}`],
-    [/^crisi (.+)$/i, m => `${part(m[1])} crisis`],
-    [/^controllo (.+)$/i, m => `${part(m[1])} control`],
-    [/^autocontrollo (.+)$/i, m => `self-control of ${part(m[1])}`]
+    [/^mal di (.+)$/i, m => /testa/i.test(m[1]) ? 'headache' : `${part(m[1])} ache`],
+    [/^senza (.+)$/i, m => {
+      if(/scopo/i.test(m[1])) return 'aimlessness';
+      if(/speranza/i.test(m[1])) return 'hopelessness';
+      const s = part(m[1]);
+      return s ? `without ${s}` : '';
+    }],
+    [/^difficolta di (.+)$/i, m => /adattamento/i.test(m[1]) ? 'struggling to adjust' : (part(m[1]) ? `trouble with ${part(m[1])}` : '')],
+    [/^difficoltà di (.+)$/i, m => /adattamento/i.test(m[1]) ? 'struggling to adjust' : (part(m[1]) ? `trouble with ${part(m[1])}` : '')],
+    [/^desiderio di (.+)$/i, m => {
+      if(/morte/i.test(m[1])) return 'suicidal thoughts';
+      if(/cambiamento/i.test(m[1])) return 'wanting change';
+      const s = part(m[1]);
+      return s ? `wanting ${s}` : '';
+    }],
+    [/^repressione delle (.+)$/i, m => /emozioni/i.test(m[1]) ? 'bottling things up' : (part(m[1]) ? `suppressing ${part(m[1])}` : '')],
+    [/^controllo dell(?:a|')(.+)$/i, m => {
+      if(/alimentazione/i.test(m[1])) return 'eating control';
+      if(/ansia/i.test(m[1])) return 'managing anxiety';
+      return part(m[1]) ? `managing ${part(m[1])}` : '';
+    }],
+    [/^controllo degli (.+)$/i, m => /impulsi alimentari/i.test(m[1]) ? 'resisting binge urges' : (part(m[1]) ? `managing ${part(m[1])}` : '')],
+    [/^controllo del(?:la|lo|li)?\s+(.+)$/i, m => {
+      if(/peso/i.test(m[1])) return 'weight obsession';
+      if(/dieta/i.test(m[1])) return 'diet rules';
+      if(/fame/i.test(m[1])) return 'managing hunger';
+      return part(m[1]) ? `managing ${part(m[1])}` : '';
+    }],
+    [/^arrivo dei (.+)$/i, m => /cugini/i.test(m[1]) ? 'cousins visiting' : `${part(m[1])} arriving`],
+    [/^uso del (.+)$/i, m => /telefono/i.test(m[1]) ? 'too much screen time' : `living on ${part(m[1])}`],
+    [/^amicizia (.+)$/i, m => {
+      if(/problematica/i.test(m[1])) return 'strained friendship';
+      if(/universitaria/i.test(m[1])) return 'college friendships';
+      return part(m[1]) ? `${part(m[1])} friendship` : 'friendship';
+    }],
+    [/^ritorno a(?:lla)?\s+(.+)$/i, m => {
+      if(/routine/i.test(m[1])) return 'back to routine';
+      if(/casa/i.test(m[1])) return 'going home';
+      const s = part(m[1]);
+      return s ? `back to ${s}` : '';
+    }],
+    [/^tornare a (.+)$/i, m => /casa/i.test(m[1]) ? 'going home' : `back to ${part(m[1])}`],
+    [/^rientro a (.+)$/i, m => /casa/i.test(m[1]) ? 'coming home' : `back to ${part(m[1])}`],
+    [/^torna a (.+)$/i, m => /torino/i.test(m[1]) ? 'back in Turin' : `back to ${part(m[1])}`],
+    [/^tornata alla (.+)$/i, m => /normalit/i.test(m[1]) ? 'settling back in' : `back to ${part(m[1])}`],
+    [/^relazione con (?:la|il|lo|l')?(.+)$/i, m => {
+      if(/madre/i.test(m[1])) return 'issues with mom';
+      if(/giovanna/i.test(m[1])) return '';
+      return `dynamic with ${part(m[1])}`;
+    }],
+    [/^relazioni (.+)$/i, m => /familiari/i.test(m[1]) ? 'family dynamics' : `${part(m[1])} relationships`],
+    [/^problemi (.+)$/i, m => /personali/i.test(m[1]) ? 'personal struggles' : `${part(m[1])} problems`],
+    [/^pensieri (.+)$/i, m => /negativi/i.test(m[1]) ? 'negative spiraling' : `${part(m[1])} thoughts`],
+    [/^emozioni (.+)$/i, m => /negativ/i.test(m[1]) ? 'dark moods' : `${part(m[1])} feelings`],
+    [/^emozione (.+)$/i, m => /negativ/i.test(m[1]) ? 'bad mood' : `${part(m[1])} mood`],
+    [/^disturbo (.+)$/i, m => /alimentare/i.test(m[1]) ? 'eating disorder' : `${part(m[1])} disorder`],
+    [/^disturbi (.+)$/i, m => /alimentari/i.test(m[1]) ? 'eating disorders' : `${part(m[1])} disorders`],
+    [/^insicurezza (.+)$/i, m => /sociale/i.test(m[1]) ? 'social anxiety' : /futura/i.test(m[1]) ? 'uncertainty about the future' : `${part(m[1])} insecurity`],
+    [/^impatto (.+)$/i, m => /emotivo/i.test(m[1]) ? 'emotional toll' : `${part(m[1])} impact`],
+    [/^isolamento (.+)$/i, m => /emotivo/i.test(m[1]) ? 'feeling cut off' : `${part(m[1])} isolation`],
+    [/^realizzazione (.+)$/i, m => /personale/i.test(m[1]) ? 'finding purpose' : `${part(m[1])} fulfillment`],
+    [/^trasformazione (.+)$/i, m => /personale/i.test(m[1]) ? 'trying to change' : `personal ${part(m[1])}`],
+    [/^imperfezione (.+)$/i, m => /personale/i.test(m[1]) ? 'feeling flawed' : `personal ${part(m[1])}`],
+    [/^presa di (.+)$/i, m => /responsabilit/i.test(m[1]) ? 'stepping up' : `taking on ${part(m[1])}`],
+    [/^rifiuto di (.+)$/i, m => /aiuto/i.test(m[1]) ? 'pushing help away' : `refusing ${part(m[1])}`],
+    [/^modi di (.+)$/i, m => /vita/i.test(m[1]) ? 'ways of living' : `ways of ${part(m[1])}`],
+    [/^fare (.+)$/i, m => /cose belle/i.test(m[1]) ? 'trying to enjoy myself' : `doing ${part(m[1])}`],
+    [/^mangiare (.+)$/i, m => /troppo/i.test(m[1]) ? 'overeating' : `eating ${part(m[1])}`],
+    [/^liti con (?:i|gli|le)?\s*(.+)$/i, m => /coinquilini/i.test(m[1]) ? 'roommate fights' : `fighting with ${part(m[1])}`],
+    [/^flirt con (.+)$/i, m => /ogni ragazzo/i.test(m[0]) ? 'crushes on cute guys' : `flirting with ${part(m[1])}`],
+    [/^spesa (.+)$/i, m => /eccessiva/i.test(m[1]) ? 'overspending' : `${part(m[1])} shopping`],
+    [/^aspettative (.+)$/i, m => /non soddisfatte/i.test(m[0]) ? 'things fell short' : `${part(m[1])} expectations`],
+    [/^speranza di (.+)$/i, m => /risoluzione del conflitto/i.test(m[1]) ? 'hoping things resolve' : `hoping for ${part(m[1])}`],
+    [/^bruciore (.+)$/i, m => /emotivo/i.test(m[1]) ? 'aching inside' : `${part(m[1])} burning`],
+    [/^dolori (.+)$/i, m => /generalizzati/i.test(m[1]) ? 'aches all over' : `${part(m[1])} pain`],
+    [/^rompimento di (.+)$/i, m => /frustrazione/i.test(m[1]) ? 'snapping from frustration' : `breaking from ${part(m[1])}`],
+    [/^crisi (.+)$/i, m => {
+      if(/emotiva/i.test(m[1])) return 'emotional breakdown';
+      if(/ansia/i.test(m[1])) return 'panic spiral';
+      if(/alimentare/i.test(m[1])) return 'food falling apart';
+      return `${part(m[1])} crisis`;
+    }],
+    [/^controllo (.+)$/i, m => {
+      if(/alimentare/i.test(m[1])) return 'restrictive eating';
+      if(/emotivo/i.test(m[1])) return 'keeping emotions in check';
+      if(/personale/i.test(m[1])) return 'self-control';
+      return part(m[1]) ? `${part(m[1])} control` : '';
+    }],
+    [/^autocontrollo (.+)$/i, m => /alimentare/i.test(m[1]) ? 'food discipline' : 'self-control'],
+    [/^bassa (.+)$/i, m => /soddisfazione/i.test(m[1]) ? 'underwhelmed' : `low ${part(m[1])}`],
+    [/^giornata (.+)$/i, m => /sprecata/i.test(m[1]) ? 'day felt wasted' : `${part(m[1])} day`],
+    [/^fine del (.+)$/i, m => /fine settimana/i.test(m[1]) ? 'weekend ending' : `end of ${part(m[1])}`]
   ];
   for(const [re, build] of rules){
     const m = raw.match(re);
@@ -599,9 +731,16 @@ function emotionLabel(id){
   return lookupLabel(EMOTION_LABELS, id) || String(id || '').replace(/_/g, ' ');
 }
 function themeLabel(theme){
-  if(isThemeNoise(theme) || isEmotionTheme(theme)) return '';
+  const raw = themeKey(theme);
+  if(/\bgiovanna\b/i.test(raw)) return '';
+  const preset = lookupLabel(THEME_LABELS, deaccent(raw)) || lookupLabel(THEME_LABELS, raw);
+  if(preset && !isEmotionTheme(preset) && !isBannedThemeLabel(preset)) return preset;
+  if(isThemeNoise(theme)) return '';
+  if(isEmotionTheme(theme)) return '';
   const out = englishLabel(theme);
-  return out && !looksItalian(out) ? out : '';
+  if(!out || looksItalian(out) || isEmotionTheme(out) || isBannedThemeLabel(out)) return '';
+  if(/\bgiovanna\b/i.test(out)) return '';
+  return out;
 }
 const BANNED_WORD_LABELS = new Set(['unhappiness', 'world', 'can', 'at least']);
 function wordLabel(word){
@@ -683,7 +822,8 @@ const WORD_STOP = new Set('il lo la i gli le un una uno di a da in con su per ch
 const EMOTION_WORD_OVERRIDES = {
   speranza: ['possible', 'life', 'starting', 'good', 'change'],
   tristezza: ['alone', 'emptiness', 'crying', 'memory', 'loss'],
-  sollievo: ['return', 'home', 'goodbye', 'pause', 'calm']
+  sollievo: ['return', 'home', 'goodbye', 'pause', 'calm'],
+  noia: ['boredom', 'routine', 'nothing', 'waiting', 'empty']
 };
 const EMOTION_THEME_OVERRIDES = {
   tristezza: ['isolation', 'memory', 'home'],
@@ -759,7 +899,9 @@ function entriesForThemeEmotion(entries, themeId){
   return entries.filter(e => (e.analisi?.temi || []).some(t => deaccent(themeKey(t)) === key));
 }
 function entriesForEmotion(entries, emotion){
-  if(LAYOUT_EXTRA_EMOTIONS.includes(emotion)) return entriesForThemeEmotion(entries, emotion);
+  if(LAYOUT_EXTRA_EMOTIONS.includes(emotion)){
+    return entriesForThemeEmotion(entries, emotion);
+  }
   return entries.filter(e => {
     const score = emotionScore(e, emotion);
     if(score < 3) return false;
@@ -887,7 +1029,7 @@ function topWordsForEmotion(entries, emotion, limit = 5){
 }
 function topThemesForEmotion(entries, emotion, limit = 3){
   const pool = entries.filter(e => !isEdNoiseEntry(e));
-  const counts = {};
+  const counts = new Map();
   pool.forEach(e => {
     const score = emotionScore(e, emotion);
     const margin = score - emotionSecondScore(e);
@@ -895,14 +1037,17 @@ function topThemesForEmotion(entries, emotion, limit = 3){
     (e.analisi?.temi || []).forEach(t => {
       const k = normTheme(t);
       if(!k || k === emotion || isThemeNoise(t) || isEmotionTheme(t) || isIncongruentTheme(t, emotion)) return;
-      counts[k] = (counts[k] || 0) + weight;
+      const label = themeLabel(t);
+      if(!label || isEmotionTheme(label)) return;
+      const key = themeDisplayKey(label);
+      const prev = counts.get(key);
+      counts.set(key, { label, weight: (prev?.weight || 0) + weight });
     });
   });
-  return Object.entries(counts)
-    .filter(([t]) => !isEmotionTheme(t) && !isIncongruentTheme(t, emotion))
-    .sort((a, b) => b[1] - a[1])
+  return [...counts.values()]
+    .sort((a, b) => b.weight - a.weight)
     .slice(0, limit)
-    .map(([t]) => t);
+    .map(item => item.label);
 }
 function formatWordList(words){
   if(!words.length) return '—';
@@ -934,12 +1079,19 @@ function buildEmotionData(entries){
     const matched = matchMap[id];
     const wordEntries = entries ? entriesForEmotionWords(entries, id) : [];
     const count = entries ? matched.length : (FALLBACK_COUNTS[id] || 40);
-    const words = entries
+    let words = entries
       ? (EMOTION_WORD_OVERRIDES[id] || topWordsForEmotion(wordEntries, id).map(wordLabel).filter(Boolean))
       : [];
-    const themes = entries
-      ? (EMOTION_THEME_OVERRIDES[id] || topThemesForEmotion(wordEntries, id).map(themeLabel).filter(Boolean))
-      : [];
+    if(entries && !words.length && FALLBACK_WORDS[id]){
+      words = FALLBACK_WORDS[id].split(' · ').filter(w => w && w !== '—');
+    }
+    let themes = entries ? dedupeThemes(topThemesForEmotion(wordEntries, id)) : [];
+    if(entries && !themes.length && EMOTION_THEME_OVERRIDES[id]){
+      themes = dedupeThemes(EMOTION_THEME_OVERRIDES[id]);
+    }
+    if(entries && !themes.length && FALLBACK_THEMES[id]){
+      themes = dedupeThemes(FALLBACK_THEMES[id].split(', ').filter(t => t && t !== '—'));
+    }
     const fallbackWords = (FALLBACK_WORDS[id] || '—').split(' · ').filter(w => w && w !== '—');
     const fallbackThemes = (FALLBACK_THEMES[id] || '—').split(', ').filter(t => t && t !== '—');
     result[id] = {
@@ -1200,18 +1352,64 @@ function blockParallaxOffset(b){
   };
 }
 let hover = null;
-let selected = null;
 let lastPointer = null;
-function blockPointsAt(b, cx, y){
-  const N={x:cx,y:y}, E={x:cx+b.w,y:y+b.w*.48}, S={x:cx,y:y+b.w*.96}, W={x:cx-b.w,y:y+b.w*.48};
-  const D={x:0,y:b.h};
+function blockMotion(b, t){
+  const i = blocks.indexOf(b);
+  const phase = t * .000045 + i * .69;
+  const breathe = 1 + Math.sin(phase * 1.08 + i * 0.17) * BLOCK_BREATHE_AMP;
+  const hPulse = 1 + Math.cos(phase * 0.94 + i * 0.23) * BLOCK_H_PULSE_AMP;
+  const motion = {
+    scaleW: breathe,
+    scaleH: breathe * hPulse,
+    isoTilt: Math.sin(phase * 0.86 + i * 0.31) * BLOCK_ISO_TILT_AMP,
+    lift: 0,
+    tiltX: 0,
+    tiltY: 0,
+    shadowBoost: 1
+  };
+  const active = hover;
+  if(active === b){
+    motion.lift = -BLOCK_HOVER_LIFT;
+    motion.shadowBoost = 1.62;
+    if(parallaxInfluence > 0.01){
+      const anchor = b.parallaxAnchor || { x: b.cx, y: b.y + b.w * 0.48 };
+      const nx = clamp((parallaxMouse.x - anchor.x) / Math.max(worldW * 0.46, 1), -1, 1);
+      const ny = clamp((parallaxMouse.y - anchor.y) / Math.max(WORLD_H * 0.46, 1), -1, 1);
+      motion.tiltX = nx * BLOCK_HOVER_TILT_X;
+      motion.tiltY = ny * BLOCK_HOVER_TILT_Y;
+    }
+  } else if(active){
+    const related = (patternData[active.id]?.related || []).map(r => typeof r === 'string' ? r : r.id);
+    if(related.includes(b.id)){
+      motion.lift = -BLOCK_RELATED_LIFT;
+      motion.shadowBoost = 1.18;
+    }
+  }
+  return motion;
+}
+function blockPointsAt(b, cx, y, motion = {}){
+  const iso = 0.48 + (motion.isoTilt || 0);
+  const bw = b.w * (motion.scaleW ?? 1);
+  const bh = b.h * (motion.scaleH ?? 1);
+  const tx = motion.tiltX || 0;
+  const ty = motion.tiltY || 0;
+  const lift = motion.lift || 0;
+  const cy = y + lift;
+  const cx0 = cx + tx * 0.22;
+  const topBias = ty * 0.42;
+  const N={x:cx0 + tx, y:cy + topBias};
+  const E={x:cx0 + bw + tx * 0.55, y:cy + bw * iso + ty * 0.14};
+  const S={x:cx0, y:cy + bw * iso * 2};
+  const W={x:cx0 - bw + tx * 0.55, y:cy + bw * iso + ty * 0.14};
+  const D={x:tx * 0.1, y:bh};
   return {N,E,S,W,D,
     top:[N,E,S,W],
     left:[W,S,{x:S.x+D.x,y:S.y+D.y},{x:W.x+D.x,y:W.y+D.y}],
     right:[E,S,{x:S.x+D.x,y:S.y+D.y},{x:E.x+D.x,y:E.y+D.y}],
-    anchor:{x:cx,y:y+b.w*.48+b.h*.55},
-    linkAnchor:{x:cx,y:y+b.w*.96+b.h*.9},
-    label:{x:cx-b.w*.58,y:y+b.w*.49+b.h*.16}
+    anchor:{x:cx0,y:cy + bw * iso + bh * 0.55},
+    linkAnchor:{x:cx0,y:cy + bw * iso * 2 + bh * 0.9},
+    label:{x:cx0 - bw * 0.58,y:cy + bw * iso + bh * 0.16},
+    motion
   };
 }
 function blockPointsStatic(b){
@@ -1220,13 +1418,35 @@ function blockPointsStatic(b){
 function pts(b, t){
   const i = blocks.indexOf(b);
   const phase = t * .000045 + i * .69;
-  const ampX = 1.1 + (i % 6) * 0.65;
-  const ampY = 0.8 + (i % 5) * 0.7;
+  const ampX = 2 + (i % 6) * 0.85;
+  const ampY = 1.45 + (i % 5) * 0.9;
   const sx = Math.sin(phase * (0.82 + (i % 4) * 0.14)) * ampX;
   const sy = Math.cos(phase * (1.08 + (i % 3) * 0.11)) * ampY;
+  const motion = blockMotion(b, t);
+  const effW = b.w * motion.scaleW;
+  const effH = b.h * motion.scaleH;
   const { dx, dy } = blockParallaxOffset(b);
-  const clamped = clampBlockPosition(b.cx + sx + dx, b.y + sy + dy, b.w, b.h);
-  return blockPointsAt(b, clamped.cx, clamped.y);
+  const clamped = clampBlockPosition(b.cx + sx + dx, b.y + sy + dy, effW, effH);
+  return blockPointsAt(b, clamped.cx, clamped.y, motion);
+}
+function drawBlockShadow(b, p, alpha, motion = {}){
+  const foot = p.S;
+  const boost = motion.shadowBoost ?? 1;
+  const rx = b.w * 0.36 * boost;
+  const ry = Math.max(3.5, b.w * 0.1 * boost);
+  const ox = (motion.tiltX || 0) * 0.18;
+  const oy = (motion.lift || 0) * -0.08 + 2;
+  ctx.save();
+  ctx.globalAlpha = alpha * (boost > 1.2 ? 0.36 : 0.24);
+  const g = ctx.createRadialGradient(foot.x + ox, foot.y + oy, 0, foot.x + ox, foot.y + oy, rx);
+  g.addColorStop(0, 'rgba(43,25,40,.42)');
+  g.addColorStop(0.55, 'rgba(43,25,40,.14)');
+  g.addColorStop(1, 'rgba(43,25,40,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.ellipse(foot.x + ox, foot.y + oy, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 function poly(p){ ctx.beginPath(); ctx.moveTo(p[0].x,p[0].y); for(let i=1;i<p.length;i++)ctx.lineTo(p[i].x,p[i].y); ctx.closePath(); }
 function faceMetrics(p){
@@ -1249,9 +1469,6 @@ function face(faceImages,p,off,faceKind,alpha=1){
   if(!images.length){
     ctx.fillStyle = faceKind === 'top' ? 'rgba(43,25,40,.10)' : 'rgba(43,25,40,.07)';
     ctx.fill();
-    ctx.strokeStyle = 'rgba(43,25,40,.16)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
     ctx.restore();
     return;
   }
@@ -1265,9 +1482,8 @@ function face(faceImages,p,off,faceKind,alpha=1){
   const tileW = step + FACE_TILE_OVERLAP;
   const tileH = cellH * FACE_TILE_BLEED;
   const tileY = -(tileH - cellH) * 0.5;
-  const scrollMult = faceKind === 'top' ? 1 : faceKind === 'left' ? 0.62 : 0.62;
   const span = Math.max(step, images.length * step);
-  const scroll = ((off * scrollMult) % span + span) % span;
+  const scroll = ((off % span) + span) % span;
   const idx = Math.floor(scroll / step) % images.length;
   const slide = scroll % step;
   for(let n = -1; n <= 2; n++){
@@ -1411,7 +1627,7 @@ function pointInPoly(pt, vs){
   return inside;
 }
 function hitTest(pt,t){
-  if(hover && !selected){
+  if(hover){
     const hp = pts(hover, t);
     if(pointInPoly(pt, hp.top) || pointInPoly(pt, hp.left) || pointInPoly(pt, hp.right)) return hover;
   }
@@ -1455,6 +1671,7 @@ function drawWorldLinks(active, t){
   ctx.restore();
 }
 function draw(t){
+  if(window.__EMOTION_DETAIL_PAGE__) return;
   tickParallax();
   ctx.setTransform(1,0,0,1,0,0);
   ctx.clearRect(0,0,viewW,viewH);
@@ -1463,7 +1680,7 @@ function draw(t){
   ctx.translate(originX, originY);
   ctx.scale(mapScale, mapScale);
   if(lastPointer) hover = hitTest(lastPointer,t);
-  const activeBlock = selected || hover;
+  const activeBlock = hover;
   const relatedIds = activeBlock
     ? (patternData[activeBlock.id]?.related || []).map(r => typeof r === 'string' ? r : r.id)
     : [];
@@ -1474,35 +1691,22 @@ function draw(t){
     const media = emotionStripMeta(b.id);
     const faceSets = media?.faces || { top: [], left: [], right: [] };
     const isHover = hover === b;
-    const isSelected = selected === b;
     const isActive = activeBlock === b;
     const isRelated = relatedIds.includes(b.id);
     const alpha = !activeBlock ? .94 : isActive ? 1 : isRelated ? .52 : .18;
+    const motion = p.motion || {};
+    drawBlockShadow(b, p, alpha, motion);
     face(faceSets.top, p.top, off, 'top', alpha);
-    face(faceSets.left, p.left, off + 44, 'left', alpha);
-    face(faceSets.right, p.right, off + 88, 'right', alpha);
+    face(faceSets.left, p.left, off + 28, 'left', alpha);
+    face(faceSets.right, p.right, off + 104, 'right', alpha);
     shade(p.left, `rgba(237,229,232,${0.20 * alpha})`);
     shade(p.right, `rgba(210,205,230,${0.18 * alpha})`);
     if(isActive){
       ctx.save();
       poly(p.top);
       ctx.globalCompositeOperation='screen';
-      ctx.fillStyle=isSelected ? 'rgba(255,255,255,.30)' : 'rgba(255,255,255,.18)';
+      ctx.fillStyle='rgba(255,255,255,.18)';
       ctx.fill();
-      ctx.restore();
-      ctx.save();
-      poly(p.top);
-      ctx.strokeStyle='rgba(43,25,40,.5)';
-      ctx.lineWidth=isSelected ? 2.5 : 1.8;
-      ctx.stroke();
-      ctx.restore();
-    } else if(isRelated){
-      ctx.save();
-      poly(p.top);
-      ctx.strokeStyle='rgba(43,25,40,.28)';
-      ctx.lineWidth=1.2;
-      ctx.setLineDash([4, 5]);
-      ctx.stroke();
       ctx.restore();
     }
   });
@@ -1512,7 +1716,7 @@ function draw(t){
   requestAnimationFrame(draw);
 }
 function firstBlock(id){ return blocks.find(b=>b.id===id); }
-function currentBlock(id){ const active = selected || hover; return active && active.id===id ? active : firstBlock(id); }
+function currentBlock(id){ return hover && hover.id === id ? hover : firstBlock(id); }
 function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 function rectsOverlap(a, b, pad = 8){
   return !(a.right + pad < b.left || a.left > b.right + pad || a.bottom + pad < b.top || a.top > b.bottom + pad);
@@ -1811,17 +2015,20 @@ function renderExplodedBurst(data, block, mapScale){
       </div>
       <div class="ex-words">${wordHtml}</div>
       ${themeHtml ? `<div class="ex-themes">${themeHtml}</div>` : ''}
-      <div class="ex-meta">frequent words</div>
+      <div class="ex-meta">frequent words · click room to explore themes</div>
     </div>
   `;
 }
 function explodeLayoutKey(active){
   const maxScale = clamp(Math.min(viewW, viewH) / 480, 0.82, 1.65);
   const scale = clamp(active.w * mapScale / 72, 0.85, maxScale);
-  return `${active.id}|${selected ? 1 : 0}|${Math.round(scale * 1000)}|${Math.round(mapScale * 1000)}|${viewW}|${viewH}`;
+  return `${active.id}|${Math.round(scale * 1000)}|${Math.round(mapScale * 1000)}|${viewW}|${viewH}`;
+}
+function navigateToEmotion(emotionId){
+  window.location.href = `emotion.html?e=${encodeURIComponent(emotionId)}`;
 }
 function positionText(){
-  const active = selected || hover;
+  const active = hover;
   if(!active){
     if(explodeLayout.key !== null){
       explodeLayout.key = null;
@@ -1831,7 +2038,7 @@ function positionText(){
     if(hoverNote) hoverNote.style.opacity = '.78';
     return;
   }
-  if(hoverNote) hoverNote.style.opacity = selected ? '.42' : '0';
+  if(hoverNote) hoverNote.style.opacity = '0';
   const data = patternData[active.id];
   if(!data) return;
   const layoutKey = explodeLayoutKey(active);
@@ -1850,41 +2057,43 @@ function updatePointerFromClient(clientX, clientY){
   lastPointer = { x: (clientX - r.left - originX) / mapScale, y: (clientY - r.top - originY) / mapScale };
   pointerToParallaxWorld(clientX, clientY);
 }
-canvas.addEventListener('mousemove', e=>{
-  updatePointerFromClient(e.clientX, e.clientY);
-});
-canvas.addEventListener('mouseleave', ()=>{
-  lastPointer = null;
-  hover = null;
-  resetParallaxTarget();
-});
-canvas.addEventListener('touchmove', e=>{
-  if(!e.touches.length) return;
-  e.preventDefault();
-  updatePointerFromClient(e.touches[0].clientX, e.touches[0].clientY);
-}, {passive:false});
-canvas.addEventListener('touchend', e=>{
-  if(e.touches.length) return;
-  lastPointer = null;
-  resetParallaxTarget();
-});
-canvas.addEventListener('click', e=>{
-  const r=canvas.getBoundingClientRect();
-  const pt={x:(e.clientX-r.left-originX)/mapScale, y:(e.clientY-r.top-originY)/mapScale};
-  lastPointer=pt;
-  const hit = hitTest(pt, performance.now());
-  selected = selected === hit ? null : hit;
-});
-canvas.addEventListener('touchstart', e=>{
-  if(!e.touches.length) return;
-  e.preventDefault();
-  const t0=e.touches[0];
-  updatePointerFromClient(t0.clientX, t0.clientY);
-  const hit = hitTest(lastPointer, performance.now());
-  selected = selected === hit ? null : hit;
-}, {passive:false});
+if(canvas && !window.__EMOTION_DETAIL_PAGE__){
+  canvas.addEventListener('mousemove', e=>{
+    updatePointerFromClient(e.clientX, e.clientY);
+  });
+  canvas.addEventListener('mouseleave', ()=>{
+    lastPointer = null;
+    hover = null;
+    resetParallaxTarget();
+  });
+  canvas.addEventListener('touchmove', e=>{
+    if(!e.touches.length) return;
+    e.preventDefault();
+    updatePointerFromClient(e.touches[0].clientX, e.touches[0].clientY);
+  }, {passive:false});
+  canvas.addEventListener('touchend', e=>{
+    if(e.touches.length) return;
+    lastPointer = null;
+    resetParallaxTarget();
+  });
+  canvas.addEventListener('click', e=>{
+    const r=canvas.getBoundingClientRect();
+    const pt={x:(e.clientX-r.left-originX)/mapScale, y:(e.clientY-r.top-originY)/mapScale};
+    lastPointer=pt;
+    const hit = hitTest(pt, performance.now());
+    if(hit) navigateToEmotion(hit.id);
+  });
+  canvas.addEventListener('touchstart', e=>{
+    if(!e.touches.length) return;
+    e.preventDefault();
+    const t0=e.touches[0];
+    updatePointerFromClient(t0.clientX, t0.clientY);
+    const hit = hitTest(lastPointer, performance.now());
+    if(hit) navigateToEmotion(hit.id);
+  }, {passive:false});
+}
 window.addEventListener('keydown', e=>{
-  if(e.key === 'Escape'){ selected=null; hover=null; lastPointer=null; resetParallaxTarget(); }
+  if(e.key === 'Escape'){ hover=null; lastPointer=null; resetParallaxTarget(); }
 });
 
 function resizeCanvas(){
@@ -1892,11 +2101,15 @@ function resizeCanvas(){
   const stageRect = stage ? stage.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight };
   viewW = Math.max(1, Math.round(stageRect.width));
   viewH = Math.max(1, Math.round(stageRect.height));
-  canvas.width = viewW;
-  canvas.height = viewH;
-  links.setAttribute('viewBox', `0 0 ${viewW} ${viewH}`);
-  links.setAttribute('width', viewW);
-  links.setAttribute('height', viewH);
+  if(canvas){
+    canvas.width = viewW;
+    canvas.height = viewH;
+  }
+  if(links){
+    links.setAttribute('viewBox', `0 0 ${viewW} ${viewH}`);
+    links.setAttribute('width', viewW);
+    links.setAttribute('height', viewH);
+  }
   syncWorldWidth();
   explodeLayout.key = null;
   mapScale = Math.min(viewW / worldW, viewH / WORLD_H);
@@ -1911,9 +2124,13 @@ function resizeCanvas(){
   parallaxInfluence = 0;
   parallaxInfluenceTarget = 0;
 }
-window.addEventListener('resize', resizeCanvas);
-if(stageEl && typeof ResizeObserver !== 'undefined'){
-  new ResizeObserver(resizeCanvas).observe(stageEl);
+if(!window.__EMOTION_DETAIL_PAGE__){
+  window.addEventListener('resize', resizeCanvas);
+  if(stageEl && typeof ResizeObserver !== 'undefined'){
+    new ResizeObserver(resizeCanvas).observe(stageEl);
+  }
+  resizeCanvas();
+  emotionImagesBoot.then(() => requestAnimationFrame(draw));
+} else {
+  loadDiaryData();
 }
-resizeCanvas();
-emotionImagesBoot.then(() => requestAnimationFrame(draw));
