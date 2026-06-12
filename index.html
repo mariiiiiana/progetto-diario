@@ -8,12 +8,14 @@
 </head>
 <body>
 <div class="poster" id="poster">
-  <div class="title">diary.archive</div>
+  <header class="site-header">
+    <div class="title">diary.archive</div>
+    <div class="hover-note" id="hoverNote">hover an emotional room</div>
+  </header>
   <div class="stage">
     <canvas id="iso" width="800" height="920" aria-label="Interactive isometric map of diary patterns"></canvas>
     <div class="overlay" id="overlay">
       <svg class="links" id="links"></svg>
-      <div class="hover-note" id="hoverNote">hover an emotional room</div>
       <div class="key-note">Hover a room: the others fade and the emotion's exploded words appear.</div>
       <div class="explode-layer" id="explodeLayer" aria-live="polite"></div>
     </div>
