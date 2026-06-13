@@ -3,19 +3,38 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>diary.archive - improved interactive prototype</title>
+<title>things i couldn't say out loud</title>
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div class="poster" id="poster">
+<div class="landing" id="landing">
+  <div class="landing-inner">
+    <h1 class="landing-title">things i couldn't say out loud</h1>
+    <p class="landing-subtitle">a recolection of personal experiences</p>
+    <button class="landing-enter" id="landingEnter" type="button">enter archive</button>
+  </div>
+</div>
+<div class="poster" id="poster" aria-hidden="true">
   <header class="site-header">
-    <div class="title">diary.archive</div>
+    <div class="site-brand">things i couldn't say out loud</div>
+    <button class="guide-trigger" id="guideTrigger" type="button" aria-label="Show guide">how to</button>
   </header>
   <div class="stage">
     <canvas id="iso" width="800" height="920" aria-label="Interactive isometric map of diary patterns"></canvas>
     <div class="overlay" id="overlay">
       <svg class="links" id="links"></svg>
       <div class="explode-layer" id="explodeLayer" aria-live="polite"></div>
+    </div>
+  </div>
+  <div class="guide-backdrop" id="guideBackdrop" aria-hidden="true">
+    <div class="guide-popup" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+      <button class="guide-close" id="guideClose" type="button" aria-label="Close guide">×</button>
+      <h2 class="guide-title" id="guideTitle">how to explore</h2>
+      <ol class="guide-steps">
+        <li><span class="guide-action">hover</span> a room to preview its pattern and frequent words</li>
+        <li><span class="guide-action">click</span> a room to open its theme archive</li>
+      </ol>
+      <button class="guide-dismiss" id="guideDismiss" type="button">got it</button>
     </div>
   </div>
 </div>

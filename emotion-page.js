@@ -51,7 +51,7 @@ async function initEmotionPage(){
   const entryCount = entriesForEmotion(diaryData, emotionId).length;
   const themes = themesForEmotionPage(emotionId);
 
-  document.title = `${label} — diary.archive themes`;
+  document.title = `${label} — things i couldn't say out loud`;
   titleEl.textContent = label;
   countEl.textContent = entryCount;
   metaEl.textContent = `${themes.length} themes`;

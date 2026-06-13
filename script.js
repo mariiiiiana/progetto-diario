@@ -9,25 +9,30 @@ let originY = 0;
 let mapScale = 1;
 
 let diaryData = null;
+let diaryLoadPromise = null;
 
-async function loadDiaryData() {
-  try {
-    const response = await fetch("dati_diario_landing.json");
+function loadDiaryData() {
+  if(diaryLoadPromise) return diaryLoadPromise;
+  diaryLoadPromise = (async () => {
+    try {
+      const response = await fetch("dati_diario_landing.json");
 
-    if (!response.ok) {
-      throw new Error("Error loading JSON file");
+      if (!response.ok) {
+        throw new Error("Error loading JSON file");
+      }
+
+      diaryData = await response.json();
+      syncEmotionCatalog(diaryData);
+      patternData = buildEmotionData(diaryData);
+      if(!window.__EMOTION_DETAIL_PAGE__){
+        rebuildBaseBlocks();
+        resizeCanvas();
+      }
+    } catch (error) {
+      console.error("Diary loading error:", error);
     }
-
-    diaryData = await response.json();
-    syncEmotionCatalog(diaryData);
-    patternData = buildEmotionData(diaryData);
-    if(!window.__EMOTION_DETAIL_PAGE__){
-      rebuildBaseBlocks();
-      resizeCanvas();
-    }
-  } catch (error) {
-    console.error("Diary loading error:", error);
-  }
+  })();
+  return diaryLoadPromise;
 }
 
 if(!window.__EMOTION_DETAIL_PAGE__) loadDiaryData();
@@ -1477,8 +1482,19 @@ function blockPointsAt(b, cx, y, motion = {}){
   const S={x:cx0, y:cy + bw * iso * 2};
   const W={x:cx0 - bw + tx * 0.55, y:cy + bw * iso + ty * 0.14};
   const D={x:tx * 0.1, y:bh};
+  const bottom=[
+    {x:N.x+D.x,y:N.y+D.y},
+    {x:E.x+D.x,y:E.y+D.y},
+    {x:S.x+D.x,y:S.y+D.y},
+    {x:W.x+D.x,y:W.y+D.y},
+  ];
+  const backLeft=[W,N,{x:N.x+D.x,y:N.y+D.y},{x:W.x+D.x,y:W.y+D.y}];
+  const backRight=[N,E,{x:E.x+D.x,y:E.y+D.y},{x:N.x+D.x,y:N.y+D.y}];
   return {N,E,S,W,D,
     top:[N,E,S,W],
+    bottom,
+    backLeft,
+    backRight,
     left:[W,S,{x:S.x+D.x,y:S.y+D.y},{x:W.x+D.x,y:W.y+D.y}],
     right:[E,S,{x:S.x+D.x,y:S.y+D.y},{x:E.x+D.x,y:E.y+D.y}],
     anchor:{x:cx0,y:cy + bw * iso + bh * 0.55},
@@ -1505,8 +1521,9 @@ function pts(b, t){
   return blockPointsAt(b, clamped.cx, clamped.y, motion);
 }
 function drawBlockShadow(b, p, alpha, motion = {}){
-  const foot = p.S;
   const boost = motion.shadowBoost ?? 1;
+  if(boost <= 1.2) return;
+  const foot = p.S;
   const rx = b.w * 0.36 * boost;
   const ry = Math.max(3.5, b.w * 0.1 * boost);
   const ox = (motion.tiltX || 0) * 0.18;
@@ -1569,6 +1586,33 @@ function face(faceImages,p,off,faceKind,alpha=1){
   ctx.restore();
 }
 function shade(p, color){ ctx.save(); poly(p); ctx.globalCompositeOperation='multiply'; ctx.fillStyle=color; ctx.fill(); ctx.restore(); }
+function shadeInteriorWall(p, alpha){
+  const top = { x: (p[0].x + p[1].x) * 0.5, y: (p[0].y + p[1].y) * 0.5 };
+  const bot = { x: (p[2].x + p[3].x) * 0.5, y: (p[2].y + p[3].y) * 0.5 };
+  ctx.save();
+  poly(p);
+  ctx.clip();
+  const g = ctx.createLinearGradient(top.x, top.y, bot.x, bot.y);
+  g.addColorStop(0, `rgba(251,247,246,${0.14 * alpha})`);
+  g.addColorStop(0.45, `rgba(237,229,232,${0.10 * alpha})`);
+  g.addColorStop(1, `rgba(43,25,40,${0.30 * alpha})`);
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.restore();
+}
+function drawInteriorRim(p, alpha){
+  ctx.save();
+  ctx.globalAlpha = alpha * 0.5;
+  ctx.strokeStyle = 'rgba(43,25,40,.34)';
+  ctx.lineWidth = 1.15;
+  ctx.beginPath();
+  ctx.moveTo(p.W.x, p.W.y);
+  ctx.lineTo(p.N.x, p.N.y);
+  ctx.lineTo(p.E.x, p.E.y);
+  ctx.stroke();
+  ctx.restore();
+}
 function capitalizeLabel(s){
   const t = String(s || '').trim();
   return t ? t.charAt(0).toUpperCase() + t.slice(1) : '';
@@ -1707,12 +1751,12 @@ function pointInPoly(pt, vs){
 function hitTest(pt,t){
   if(hover){
     const hp = pts(hover, t);
-    if(pointInPoly(pt, hp.top) || pointInPoly(pt, hp.left) || pointInPoly(pt, hp.right)) return hover;
+    if(pointInPoly(pt, hp.bottom) || pointInPoly(pt, hp.backLeft) || pointInPoly(pt, hp.backRight)) return hover;
   }
   const sorted=[...blocks].map((b,i)=>({b,i})).sort((a,b)=> (a.b.y+a.b.h)-(b.b.y+b.b.h));
   for(let k=sorted.length-1;k>=0;k--){
     const b=sorted[k].b, p=pts(b,t);
-    if(pointInPoly(pt,p.top) || pointInPoly(pt,p.left) || pointInPoly(pt,p.right)) return b;
+    if(pointInPoly(pt,p.bottom) || pointInPoly(pt,p.backLeft) || pointInPoly(pt,p.backRight)) return b;
   }
   return null;
 }
@@ -1774,14 +1818,15 @@ function draw(t){
     const alpha = !activeBlock ? .94 : isActive ? 1 : isRelated ? .52 : .18;
     const motion = p.motion || {};
     drawBlockShadow(b, p, alpha, motion);
-    face(faceSets.top, p.top, off, 'top', alpha);
-    face(faceSets.left, p.left, off + 28, 'left', alpha);
-    face(faceSets.right, p.right, off + 104, 'right', alpha);
-    shade(p.left, `rgba(237,229,232,${0.20 * alpha})`);
-    shade(p.right, `rgba(210,205,230,${0.18 * alpha})`);
+    face(faceSets.top, p.bottom, off, 'top', alpha);
+    face(faceSets.left, p.backLeft, off + 56, 'left', alpha);
+    face(faceSets.right, p.backRight, off + 80, 'right', alpha);
+    shadeInteriorWall(p.backLeft, alpha);
+    shadeInteriorWall(p.backRight, alpha);
+    drawInteriorRim(p, alpha);
     if(isActive){
       ctx.save();
-      poly(p.top);
+      poly(p.bottom);
       ctx.globalCompositeOperation='screen';
       ctx.fillStyle='rgba(255,255,255,.18)';
       ctx.fill();
@@ -1801,7 +1846,7 @@ function rectsOverlap(a, b, pad = 8){
 }
 function blockScreenRect(b, t, pad = 16, useStatic = false){
   const p = useStatic ? blockPointsStatic(b) : pts(b, t);
-  const ptsList = [p.N, p.E, p.S, p.W, p.left[2], p.left[3], p.right[2], p.right[3]];
+  const ptsList = [...p.bottom, ...p.backLeft, ...p.backRight];
   let left = Infinity;
   let top = Infinity;
   let right = -Infinity;
@@ -2191,13 +2236,106 @@ function resizeCanvas(){
   parallaxInfluence = 0;
   parallaxInfluenceTarget = 0;
 }
-if(!window.__EMOTION_DETAIL_PAGE__){
+
+let mainExperienceStarted = false;
+function startMainExperience(){
+  if(mainExperienceStarted) return;
+  mainExperienceStarted = true;
   window.addEventListener('resize', resizeCanvas);
   if(stageEl && typeof ResizeObserver !== 'undefined'){
     new ResizeObserver(resizeCanvas).observe(stageEl);
   }
   resizeCanvas();
   emotionImagesBoot.then(() => requestAnimationFrame(draw));
+  initGuide();
+}
+
+function shouldSkipLanding(){
+  try{
+    if(sessionStorage.getItem('diary.archive.map.entered') === '1') return true;
+  }catch(_){}
+  const params = new URLSearchParams(window.location.search);
+  if(params.has('map')) return true;
+  return window.location.hash === '#map';
+}
+
+function dismissLanding(){
+  const landing = document.getElementById('landing');
+  const poster = document.getElementById('poster');
+  document.body.classList.remove('landing-active');
+  if(landing){
+    landing.classList.add('is-dismissed');
+    landing.setAttribute('aria-hidden', 'true');
+    landing.style.display = 'none';
+  }
+  poster?.removeAttribute('aria-hidden');
+  try{ sessionStorage.setItem('diary.archive.map.entered', '1'); }catch(_){}
+}
+
+async function bootMapExperience(){
+  dismissLanding();
+  await loadDiaryData();
+  startMainExperience();
+}
+
+function initLanding(){
+  const landing = document.getElementById('landing');
+  const enter = document.getElementById('landingEnter');
+  if(!landing || !enter){
+    bootMapExperience();
+    return;
+  }
+  if(shouldSkipLanding()){
+    bootMapExperience();
+    return;
+  }
+  document.body.classList.add('landing-active');
+  enter.addEventListener('click', () => { bootMapExperience(); });
+  enter.focus();
+}
+
+function initGuide(){
+  const backdrop = document.getElementById('guideBackdrop');
+  const trigger = document.getElementById('guideTrigger');
+  const closeBtn = document.getElementById('guideClose');
+  const dismissBtn = document.getElementById('guideDismiss');
+  if(!backdrop || !trigger) return;
+
+  const STORAGE_KEY = 'diary.archive.guide.dismissed';
+
+  function openGuide(){
+    backdrop.classList.add('is-open');
+    backdrop.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('guide-open');
+    dismissBtn?.focus();
+  }
+  function closeGuide(persist){
+    backdrop.classList.remove('is-open');
+    backdrop.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('guide-open');
+    if(persist){
+      try{ localStorage.setItem(STORAGE_KEY, '1'); }catch(_){}
+    }
+    trigger.focus();
+  }
+
+  trigger.addEventListener('click', openGuide);
+  closeBtn?.addEventListener('click', () => closeGuide(true));
+  dismissBtn?.addEventListener('click', () => closeGuide(true));
+  backdrop.addEventListener('click', e => {
+    if(e.target === backdrop) closeGuide(true);
+  });
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && backdrop.classList.contains('is-open')) closeGuide(true);
+  });
+
+  let dismissed = false;
+  try{ dismissed = localStorage.getItem(STORAGE_KEY) === '1'; }catch(_){}
+  if(!dismissed) openGuide();
+}
+
+if(!window.__EMOTION_DETAIL_PAGE__){
+  initLanding();
 } else {
   loadDiaryData();
 }
