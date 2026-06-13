@@ -94,7 +94,6 @@ const canvas = document.getElementById('iso');
 const ctx = canvas ? canvas.getContext('2d') : null;
 const explodeLayer = document.getElementById('explodeLayer');
 const links = document.getElementById('links');
-const hoverNote = document.getElementById('hoverNote');
 const stageEl = document.querySelector('.stage');
 let explodeLayout = { key: null };
 
@@ -123,8 +122,10 @@ const THEME_LABELS = {
   'controllo degli impulsi alimentari': 'resisting binge urges', 'controllo delle emozioni': 'keeping feelings in check',
   'controllo emotivo': 'keeping emotions in check', 'controllo personale': 'self-control',
   'salute mentale': 'mental health', 'ritorno a casa': 'going home', 'peso corporeo': 'body weight',
-  'sentimento di inadeguatezza': 'not measuring up', 'sentimento di disperazione': 'despair',
-  'senso di disperazione': 'despair', 'emozioni negative': 'dark moods',
+  'sentimento di inadeguatezza': 'not measuring up', 'sentimento di disperazione': 'hopelessness',
+  'senso di disperazione': 'hopelessness', 'emozioni negative': 'heavy feelings',
+  'emotività negative': 'heavy feelings', 'tristezza/depressione': 'feeling low',
+  'scherzo': 'sarcasm',
   'emozione negativa': 'bad mood', 'relazioni familiari': 'family dynamics',
   'attività fisica': 'exercise', 'giornata positiva': 'good day', 'giorno libero': 'day off',
   'camminata outdoor': 'walk outside', 'aspetto fisico': 'how I look', 'auto-critica': 'self-criticism',
@@ -146,7 +147,7 @@ const THEME_LABELS = {
   'disgusto per se stesso': 'self-disgust', 'disprezzo per se stesso': 'self-loathing',
   'odio per se stesso': 'self-hatred', 'senza scopo': 'aimlessness',
   'isolamento emotivo': 'feeling cut off', 'problemi personali': 'personal struggles', 'pensieri negativi': 'negative spiraling',
-  'disturbo alimentare': 'eating disorder', 'disturbi alimentari': 'eating disorders', 'desiderio di morte': 'suicidal thoughts',
+  'disturbo alimentare': 'eating disorder', 'disturbi alimentari': 'eating disorders',
   'giorno di riposo': 'rest day', 'senso di disconnessione': 'feeling disconnected', 'perdita di controllo': 'losing control',
   'spesa eccessiva': 'overspending', 'realizzazione personale': 'finding purpose',
   'imperfezione personale': 'feeling flawed', 'abuso di cibo': 'bingeing', 'impatto emotivo': 'emotional toll',
@@ -157,14 +158,14 @@ const THEME_LABELS = {
   'giornata sprecata': 'day felt wasted',
   'sentimento di alienazione': 'feeling alienated', 'nostalgia per l\'adolescenza': 'missing adolescence',
   'bassa soddisfazione': 'underwhelmed', 'mancanza di motivazione': 'no drive left',
-  'repressione delle emozioni': 'bottling things up', 'abuso di sostanze': 'substance abuse',
+  'repressione delle emozioni': 'bottling things up',
   'sentimento di solitudine': 'loneliness', 'bruciore emotivo': 'aching inside',
   'senso di vuoto': 'emptiness', 'rompimento di frustrazione': 'snapping from frustration',
   'tornata alla normalita': 'settling back in', 'tornata alla normalità': 'settling back in',
   'gestione del tempo': 'juggling time',
   'senso di tempo che scivola via': 'time slipping away', 'modi di vita': 'ways of living',
   'rifiuto di aiuto': 'pushing help away', 'mal di testa': 'headache', 'dolori generalizzati': 'aches all over',
-  'paura della morte': 'fear of dying', 'insicurezza sociale': 'social anxiety',
+  'insicurezza sociale': 'social anxiety',
   'senso di isolamento': 'isolation', 'difficolta di adattamento': 'struggling to adjust',
   'difficoltà di adattamento': 'struggling to adjust', 'insicurezza futura': 'uncertainty about the future',
   'senso di suffocamento': 'feeling trapped', 'odio per la situazione attuale': 'hating how things are',
@@ -188,7 +189,7 @@ const THEME_LABELS = {
   'crisi emotiva': 'emotional breakdown', 'crisi d\'ansia': 'panic spiral', 'crisi alimentare': 'food falling apart',
   'aspetto fisico': 'how I look', 'camminata': 'walking', 'camminata outdoor': 'walk outside',
   'infotizione': 'crush', 'annoiosità': 'tedium', 'annoiosita': 'tedium',
-  'finalmente una lezione': 'finally a class', 'desiderio di cambiamento': 'wanting change',
+  'desiderio di cambiamento': 'wanting change',
   'senso della vita': 'purpose in life', 'stagnazione emotiva': 'stuck emotionally',
   'ripetizione': 'same old loop', 'insoddisfazione': 'not enough', 'confusione': 'mental fog',
   'soddisfazione': 'contentment', 'università': 'college life', 'universita': 'college life',
@@ -197,14 +198,13 @@ const THEME_LABELS = {
   'autodisprezzo': 'self-loathing', 'autoconsapevolezza': 'self-awareness', 'autodisciplina': 'discipline',
   'autocontrollo': 'self-control', 'autoaccettazione': 'self-acceptance', 'socializzazione': 'socializing',
   'focalizzazione': 'hyperfocus', 'determinazione': 'determination', 'perdita di peso': 'weight loss',
-  'rispetto per se stesso': 'self-respect', 'flirt con ogni ragazzo carino che vede': 'crushes on cute guys',
-  'era ora': 'about time', 'sonnambulismo': 'sleepwalking', 'vita': 'life',
+  'rispetto per se stesso': 'self-respect', 'sonnambulismo': 'sleepwalking', 'vita': 'life',
   'amicizia problematica': 'strained friendship', 'amicizia universitaria': 'college friendships',
   'senso di essere ingannato': 'feeling betrayed', 'arrivo dei cugini': 'cousins visiting',
   'uso del telefono': 'too much screen time', 'cugini': 'cousins', 'ingannato': 'betrayed', uso: 'use'
 };
 const SEMANTIC_TAIL_LABELS = {
-  inadeguatezza: 'not measuring up', disperazione: 'despair', frustrazione: 'frustration', colpa: 'guilt',
+  inadeguatezza: 'not measuring up', disperazione: 'hopelessness', frustrazione: 'frustration', colpa: 'guilt',
   solitudine: 'loneliness', alienazione: 'alienation', vuoto: 'emptiness', isolamento: 'isolation',
   suffocamento: 'feeling trapped', disconnessione: 'feeling disconnected', ansia: 'anxiety',
   calma: 'calm', felicita: 'happiness', felicità: 'happiness', disappunto: 'letdown',
@@ -221,7 +221,7 @@ const IT_WORDS = {
   ansia:'anxiety', ansietà:'anxiety', frustrazione:'frustration', autostima:'self-esteem', insicurezza:'insecurity',
   stress:'stress', rabbia:'anger', disappunto:'disappointment', camminata:'walk', paura:'fear',
   speranza:'hope', noia:'boredom', isolamento:'isolation',
-  tristezza:'sadness', odio:'hatred', umiliazione:'humiliation', disperazione:'despair', peso:'weight',
+  tristezza:'sadness', odio:'hatred', umiliazione:'humiliation', disperazione:'hopelessness', peso:'weight',
   incertezza:'uncertainty', motivazione:'motivation', solitudine:'loneliness', colpa:'guilt', disgusto:'disgust',
   famiglia:'family', stanchezza:'tiredness', salute:'health', controllo:'control', alimentare:'food-related',
   nostalgia:'nostalgia', insoddisfazione:'dissatisfaction', cibo:'food', disillusione:'disillusionment',
@@ -315,7 +315,7 @@ const IT_WORDS = {
   litigi:'arguments', litigio:'argument', magra:'thin', magro:'thin', malattia:'illness', malumore:'bad mood',
   mamma:'mom', manutenzione:'maintenance', menopausa:'menopause', mestruazioni:'period', miracolo:'miracle',
   miseria:'misery', moda:'fashion', momenti:'moments', mortificare:'humiliating', motivo:'reason', nascita:'birth',
-  noioso:'boring', normalita:'normality', obbligo:'obligation', obesita:'obesity', omicidio:'murder',
+  noioso:'boring', scherzo:'sarcasm', normalita:'normality', obbligo:'obligation', obesita:'obesity', omicidio:'murder',
   orgoglio:'pride', ormonale:'hormonal', ossessione:'obsession', ossessivita:'obsessiveness', ostilita:'hostility',
   ottimismo:'optimism', padre:'father', panico:'panic', paralisi:'paralysis', parlare:'talking', parole:'words',
   pedante:'pedantic', pena:'pain', percezione:'perception', post:'post', potere:'power', poverta:'poverty',
@@ -324,7 +324,7 @@ const IT_WORDS = {
   raffreddore:'cold', ragazzo:'boy', realta:'reality', rebranding:'rebranding', regresso:'regression',
   repressione:'repression', resistenza:'resistance', revisione:'revision',
   ricominciare:'starting over', riempire:'filling', risata:'laugh', rompimento:'breakup', sangue:'blood',
-  scherzo:'joke', scocciatura:'nuisance', scolastici:'school', scopo:'purpose', segno:'sign', sensazione:'feeling',
+  scherzo:'sarcasm', scocciatura:'nuisance', scolastici:'school', scopo:'purpose', segno:'sign', sensazione:'feeling',
   sesso:'sex', sfida:'challenge', sfogo:'outburst', sfortuna:'misfortune', sgabello:'stool', shock:'shock',
   sogni:'dreams', sogno:'dream', solidarieta:'solidarity', sopportare:'enduring', speranza:'hope',
   spreco:'waste', spronare:'pushing', squilibrio:'imbalance', stanchezza:'tiredness', storia:'story',
@@ -455,7 +455,11 @@ const EMOTION_THEME_STOP = (() => {
     if(EMOTION_IDS.includes(key) || EMOTION_LABELS[key]) add(it), add(en);
   });
   ['noia','angoscia','depressione','apatia','irritazione','ansietà','emozioni','emozione',
-    'emozioni negative','emozione negativa','negative emotions','negative emotion'].forEach(add);
+    'emozioni negative','emozione negativa','negative emotions','negative emotion',
+    'ottimismo','optimism','pessimismo','pessimism','felicita','felicità','happiness',
+    'infelicita','infelicità','unhappiness','euforia','euphoria','depression','apathy',
+    'irritation','panic','panico','wrath','ira','emotion','feelings','sentiment','sentimento'
+  ].forEach(add);
   return stop;
 })();
 function normTheme(t){ return String(t || '').toLowerCase().trim(); }
@@ -467,13 +471,39 @@ const WEEKDAY_THEME_RE = /\b(?:lunedi|martedi|mercoledi|giovedi|venerdi|sabato|d
 const GENERIC_THEME_RE = /\b(?:autostima|self-esteem|insicurezza|insecurity|ironia|irony|crispo|crisp|spesa|spending|thrifting|caffeina|caffeine|spice|male|non|esami|exams|camminata|walk)\b/i;
 const THEME_SOURCE_STOP = new Set([
   'giovanna', 'relazione con giovanna', 'accollarsi', 'condizionamento',
-  'progresso', 'progressi', 'hobby', 'serata brutta'
+  'progresso', 'progressi', 'hobby', 'serata brutta', 'omofobia', 'no', 'crisi alimentare',
+  'nessuna annotazione specificata', 'michele parascandolo', 'vott a passa', 'sta semman',
+  'gruppi di colombo', "nozione di 'useless' ripetuta", 'joan of arc', 'dehydrated apple slices',
+  'cj', 'collare', 'duchessa', 'porco', 'porcodio', 'porcoddio', 'madonna santa',
+  'crisi di menopausa', 'ansia di nascita', 'egitto', 'gross', 'ammessa al polimi',
+  'intolleranza al lattosio', 'sigarette', 'uff', 'uffa', 'ugh', 'bullismo', 'punti',
+  'focalizzarsi sul dottorato', 'ottimismo', 'pessimismo', 'ansia', 'depressione', 'anxiety', 'depression',
+  'pensieri suicidi', 'desiderio di morte', 'infedelta', 'infedeltà', 'rabbia contro se stesso',
+  'dipendenza alimentare', 'danni emotivi', 'finalmente una lezione', 'ritardo del ciclo', 'ciclo',
+  'mestruazioni', 'periodo', 'preciclo', 'problemi con il ciclo', 'preoccupazione per il ciclo',
+  'problemi menstruali', 'paura del successo', 'flirt con ogni ragazzo carino che vede', 'abuso di sostanze',
+  'noioso', 'motivo per scrivere la tesi', 'era ora', 'paura della morte', 'rabbia, disperazione',
+  'sentimento di disperazione e frustrazione'
 ].map(k => deaccent(k)));
 const BANNED_THEME_LABELS = new Set([
   'taking on', 'giovanna', 'conditioning', 'hobby', 'evening ugly',
   'hobby evening ugly', 'progress', 'giacomo',
   'friendship problematic', 'being tricked', 'arrival of the cousins', 'eating crisis',
-  'fighting food urges', 'uso of the phone', 'dynamic with giovanna', 'relationship with giovanna'
+  'fighting food urges', 'uso of the phone', 'dynamic with giovanna', 'relationship with giovanna',
+  'homophobia', 'no', 'food falling apart',
+  'optimism', 'pessimism', 'feeling gross', 'gross', 'points', 'happiness', 'unhappiness',
+  'euphoria', 'apathy', 'depression', 'emotion', 'feelings',
+  'period crash', 'menopause crisis', 'dreading my birthday', 'birth anxiety',
+  'egypt', 'bullying', 'exam prep', 'accepted to polimi', 'ugh', 'cigarettes',
+  'lactose intolerance', 'phd stress', 'suicidal thoughts', 'infidelity', 'anger at myself',
+  'food dependency', 'dark moods', 'emotional damage', 'joke', 'finally a class', 'late period',
+  'fear of succeeding', 'crushes on cute guys', 'substance abuse', 'boring', 'sadness and depression',
+  'despair', 'reason to write the thesis', 'about time', 'fear of dying', 'anxiety', 'depression',
+  'anxiety and depression', 'not wanting to be alive', 'being cheated on', 'mad at myself',
+  "can't stop eating", 'emotional scars', 'a good lecture at last', 'period running late',
+  'menstrual cycle', 'on my period', 'that time of month', 'period', "scared i'll actually succeed",
+  'flirting with every cute guy', 'using to cope', 'painfully dull', 'thesis to feel useful',
+  'high time', 'afraid of dying', 'rage and hopelessness', 'hopelessness and frustration'
 ]);
 function isBannedThemeLabel(label){
   const k = String(label || '').toLowerCase().trim();
@@ -482,7 +512,7 @@ function isBannedThemeLabel(label){
 function isThemeNoise(theme){
   const k = deaccent(normTheme(theme));
   if(THEME_SOURCE_STOP.has(k)) return true;
-  return !k || k === ':' || k.length < 2
+  return !k || k === ':' || k === 'no' || k.length < 2
     || /^\d{1,2}\s+\w+\s+\d{4}$/.test(k)
     || isReligionRef(k)
     || /\binfelicita\b/.test(k)
@@ -515,6 +545,8 @@ function isEmotionTheme(theme){
   if(EMOTION_THEME_STOP.has(k)) return true;
   const tokens = k.split(/\s+/).filter(Boolean);
   if(tokens.length === 1 && EMOTION_THEME_STOP.has(tokens[0])) return true;
+  if(tokens.length === 1) return false;
+  if(tokens.every(token => EMOTION_THEME_STOP.has(token))) return true;
   if(tokens.length === 2 && EMOTION_THEME_STOP.has(tokens[0])
     && /^(?:negativa?|negativo|negative)$/i.test(tokens[1])) return true;
   const senseTail = k.match(/^(?:senso|sentimento|feeling|sense)\s+(?:di|of|del|della|delle|dei|degli)\s+(.+)$/);
@@ -533,10 +565,22 @@ function isIncongruentTheme(theme, emotion){
   if(NEGATIVE_EMOTIONS.includes(emotion) && POSITIVE_THEME_RE.test(k)) return true;
   return false;
 }
+const _labelIndexCache = new WeakMap();
 function lookupLabel(map, key){
+  if(!map || key == null || key === '') return null;
   if(map[key]) return map[key];
-  const plain = deaccent(key);
-  return map[plain] || null;
+  const plain = deaccent(String(key));
+  if(map[plain]) return map[plain];
+  let idx = _labelIndexCache.get(map);
+  if(!idx){
+    idx = {};
+    for(const [k, v] of Object.entries(map)){
+      const dk = deaccent(k);
+      if(dk && !idx[dk]) idx[dk] = v;
+    }
+    _labelIndexCache.set(map, idx);
+  }
+  return idx[plain] || null;
 }
 const IT_MARKERS_RE = /[àèéìòù]|(?:^|\s)(del|dello|della|dei|degli|delle|dell|che|non|sono|perché|perche|essere|questo|questa|molto|tutto|niente|ancora|sempre|giorno|senso|sentimento|gestione|difficolt|emozioni|universit|responsabilit|obesit|mercoled|venerd|gioved|marted|luned|domenic|sabato|mancanza|repressione|insicurezza|preoccupazione|relazione|ritorno|tornare|bruciore|isolamento|disturbo|autocontrollo|alimentare|corporeo|familiari|personali|negativi|disperazione|frustrazione|alienazione|disconnessione|suffocamento|adattamento|normalit|motivazione|soddisfazione|organizzazione|partenza|depressione|autostima|angoscia|irritazione|dimenticanza|spesa|laurea|dolore|malinconia|nostalgia|solitudine|ansia|tristezza|rabbia|noia)\b/i;
 function looksItalian(text){
@@ -552,24 +596,38 @@ function lookupEnglishToken(key){
     || lookupLabel(IT_WORDS, k)
     || '';
 }
+function lookupThemeLabel(key){
+  const k = deaccent(String(key || '').toLowerCase().trim());
+  if(!k) return '';
+  return lookupLabel(THEME_LABELS, k)
+    || (typeof THEME_SEMANTIC_LABELS !== 'undefined' ? lookupLabel(THEME_SEMANTIC_LABELS, k) : null)
+    || lookupLabel(SEMANTIC_TAIL_LABELS, k)
+    || '';
+}
+function isLiteralThemeGarbage(label){
+  const k = String(label || '').toLowerCase().trim();
+  if(!k) return true;
+  if(/\b(dynamic with|arrival of|pairing of|afraid of the|hating the|lesson of story|writing of the|consumption excessive|purchase of a|removal of|increase of|delay of the|riavvio of the|focusing on the|control the|comments of family|war of words with the|love for se|feeling of being)\b/.test(k)) return true;
+  if(/\buso of\b/.test(k)) return true;
+  if(/\bfriendship (?!strained|college)\w+/.test(k)) return true;
+  if(/\b\w+ of the \w+/.test(k) && !/\b(back in|end of the weekend)\b/.test(k)) return true;
+  return false;
+}
 function semanticPart(text, depth = 0){
   if(depth > 5) return '';
   const raw = themeKey(text);
   if(!raw) return '';
-  const k = deaccent(raw);
-  const direct = lookupLabel(THEME_LABELS, k) || lookupLabel(SEMANTIC_TAIL_LABELS, k);
+  const direct = lookupThemeLabel(raw);
   if(direct) return direct;
-  const token = lookupEnglishToken(k);
-  if(token && !looksItalian(token)) return token;
   return '';
 }
 function translateItalianPhrase(text, depth = 0){
   if(depth > 5) return '';
   const raw = themeKey(text);
   if(!raw) return '';
-  const direct = lookupLabel(THEME_LABELS, deaccent(raw)) || lookupLabel(THEME_LABELS, raw);
+  const direct = lookupThemeLabel(raw);
   if(direct) return direct;
-  const part = (s) => semanticPart(s, depth + 1) || englishLabelInner(s, depth + 1) || '';
+  const part = (s) => semanticPart(s, depth + 1) || '';
   const rules = [
     [/^senso di essere (.+)$/i, m => /ingannat/i.test(m[1]) ? 'feeling betrayed' : `feeling ${part(m[1])}`],
     [/^senso di (.+)$/i, m => part(m[1])],
@@ -586,7 +644,14 @@ function translateItalianPhrase(text, depth = 0){
     [/^abuso di (.+)$/i, m => /cibo/i.test(m[1]) ? 'bingeing' : (part(m[1]) ? `misusing ${part(m[1])}` : '')],
     [/^paura dell(?:a|')(.+)$/i, m => `dreading ${part(m[1])}`],
     [/^paura del(?:la|lo|li|gli)?\s+(.+)$/i, m => `afraid of ${part(m[1])}`],
-    [/^paura di (.+)$/i, m => /morte/i.test(m[1]) ? 'fear of dying' : `afraid of ${part(m[1])}`],
+    [/^paura di (.+)$/i, m => /morte/i.test(m[1]) ? '' : `afraid of ${part(m[1])}`],
+    [/^ansiet[aà] per (?:la|il|lo|l')(.+)$/i, m => {
+      if(/salute fisica/i.test(m[1])) return 'health anxiety';
+      if(/vita personale/i.test(m[1])) return 'personal life worries';
+      if(/futuro/i.test(m[1])) return 'dreading the future';
+      const s = part(m[1]);
+      return s ? `anxious about ${s}` : '';
+    }],
     [/^ansia per (?:la|il|lo|i|gli|le|l')(.+)$/i, m => `anxious about ${part(m[1])}`],
     [/^ansia di (.+)$/i, m => /controllo/i.test(m[1]) ? 'need for control' : `anxious about ${part(m[1])}`],
     [/^preoccupazione per (?:la|il|lo|l')(.+)$/i, m => `worried about ${part(m[1])}`],
@@ -607,7 +672,7 @@ function translateItalianPhrase(text, depth = 0){
     [/^difficolta di (.+)$/i, m => /adattamento/i.test(m[1]) ? 'struggling to adjust' : (part(m[1]) ? `trouble with ${part(m[1])}` : '')],
     [/^difficoltà di (.+)$/i, m => /adattamento/i.test(m[1]) ? 'struggling to adjust' : (part(m[1]) ? `trouble with ${part(m[1])}` : '')],
     [/^desiderio di (.+)$/i, m => {
-      if(/morte/i.test(m[1])) return 'suicidal thoughts';
+      if(/morte/i.test(m[1])) return '';
       if(/cambiamento/i.test(m[1])) return 'wanting change';
       const s = part(m[1]);
       return s ? `wanting ${s}` : '';
@@ -645,12 +710,15 @@ function translateItalianPhrase(text, depth = 0){
     [/^relazione con (?:la|il|lo|l')?(.+)$/i, m => {
       if(/madre/i.test(m[1])) return 'issues with mom';
       if(/giovanna/i.test(m[1])) return '';
-      return `dynamic with ${part(m[1])}`;
+      if(/altri coinquilini/i.test(m[1])) return 'other roommates';
+      if(/se stess/i.test(m[1])) return 'relationship with yourself';
+      const s = part(m[1]);
+      return s ? `dynamic with ${s}` : '';
     }],
     [/^relazioni (.+)$/i, m => /familiari/i.test(m[1]) ? 'family dynamics' : `${part(m[1])} relationships`],
     [/^problemi (.+)$/i, m => /personali/i.test(m[1]) ? 'personal struggles' : `${part(m[1])} problems`],
     [/^pensieri (.+)$/i, m => /negativi/i.test(m[1]) ? 'negative spiraling' : `${part(m[1])} thoughts`],
-    [/^emozioni (.+)$/i, m => /negativ/i.test(m[1]) ? 'dark moods' : `${part(m[1])} feelings`],
+    [/^emozioni (.+)$/i, m => /negativ/i.test(m[1]) ? 'heavy feelings' : `${part(m[1])} feelings`],
     [/^emozione (.+)$/i, m => /negativ/i.test(m[1]) ? 'bad mood' : `${part(m[1])} mood`],
     [/^disturbo (.+)$/i, m => /alimentare/i.test(m[1]) ? 'eating disorder' : `${part(m[1])} disorder`],
     [/^disturbi (.+)$/i, m => /alimentari/i.test(m[1]) ? 'eating disorders' : `${part(m[1])} disorders`],
@@ -666,7 +734,7 @@ function translateItalianPhrase(text, depth = 0){
     [/^fare (.+)$/i, m => /cose belle/i.test(m[1]) ? 'trying to enjoy myself' : `doing ${part(m[1])}`],
     [/^mangiare (.+)$/i, m => /troppo/i.test(m[1]) ? 'overeating' : `eating ${part(m[1])}`],
     [/^liti con (?:i|gli|le)?\s*(.+)$/i, m => /coinquilini/i.test(m[1]) ? 'roommate fights' : `fighting with ${part(m[1])}`],
-    [/^flirt con (.+)$/i, m => /ogni ragazzo/i.test(m[0]) ? 'crushes on cute guys' : `flirting with ${part(m[1])}`],
+    [/^flirt con (.+)$/i, () => ''],
     [/^spesa (.+)$/i, m => /eccessiva/i.test(m[1]) ? 'overspending' : `${part(m[1])} shopping`],
     [/^aspettative (.+)$/i, m => /non soddisfatte/i.test(m[0]) ? 'things fell short' : `${part(m[1])} expectations`],
     [/^speranza di (.+)$/i, m => /risoluzione del conflitto/i.test(m[1]) ? 'hoping things resolve' : `hoping for ${part(m[1])}`],
@@ -727,18 +795,25 @@ function englishLabelInner(text, depth = 0){
 function englishLabel(text){
   return englishLabelInner(text, 0);
 }
+function englishThemeLabel(text, depth = 0){
+  const raw = String(text || '').trim();
+  if(!raw || raw === '—') return '';
+  const phrase = translateItalianPhrase(raw, depth);
+  if(phrase) return phrase;
+  return lookupThemeLabel(themeKey(raw)) || '';
+}
 function emotionLabel(id){
   return lookupLabel(EMOTION_LABELS, id) || String(id || '').replace(/_/g, ' ');
 }
 function themeLabel(theme){
   const raw = themeKey(theme);
   if(/\bgiovanna\b/i.test(raw)) return '';
-  const preset = lookupLabel(THEME_LABELS, deaccent(raw)) || lookupLabel(THEME_LABELS, raw);
-  if(preset && !isEmotionTheme(preset) && !isBannedThemeLabel(preset)) return preset;
+  const preset = lookupThemeLabel(raw);
+  if(preset && !isEmotionTheme(preset) && !isBannedThemeLabel(preset) && !isLiteralThemeGarbage(preset)) return preset;
   if(isThemeNoise(theme)) return '';
   if(isEmotionTheme(theme)) return '';
-  const out = englishLabel(theme);
-  if(!out || looksItalian(out) || isEmotionTheme(out) || isBannedThemeLabel(out)) return '';
+  const out = englishThemeLabel(theme);
+  if(!out || looksItalian(out) || isEmotionTheme(out) || isBannedThemeLabel(out) || isLiteralThemeGarbage(out)) return '';
   if(/\bgiovanna\b/i.test(out)) return '';
   return out;
 }
@@ -1504,17 +1579,19 @@ function labelLayoutForBlock(b){
   if(b.w < 140) return {title:11.5, count:8.5, words:6, lines:2, padY:4};
   return {title:12.5, count:9, words:6.5, lines:2, padY:6};
 }
-function isoStrokeText(text, x, y, font, fill, stroke='rgba(251,247,246,.94)', lw=3.2){
+function isoStrokeText(text, x, y, font, fill, stroke='rgba(251,247,246,.94)', lw=3.2, letterSpacing=''){
   ctx.font = font;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round';
   ctx.miterLimit = 2;
+  ctx.letterSpacing = letterSpacing;
   ctx.strokeStyle = stroke;
   ctx.lineWidth = lw;
   ctx.strokeText(text, x, y);
   ctx.fillStyle = fill;
   ctx.fillText(text, x, y);
+  ctx.letterSpacing = '0px';
 }
 function titleFontForFace(title, baseSize, maxWidth, minSize = 7.5){
   let size = baseSize;
@@ -1595,7 +1672,8 @@ function drawTopLabel(b, p, alpha, isActive){
     `700 ${layout.count}px Georgia, "Times New Roman", serif`,
     isActive ? 'rgba(111,98,106,1)' : 'rgba(111,98,106,.9)',
     'rgba(251,247,246,.92)',
-    2.8
+    2.8,
+    '-0.03em'
   );
   y += layout.count * 0.48 + 5;
   wordLines.forEach((line, i) => {
@@ -1830,12 +1908,7 @@ function nudgeAwayFromBlocks(layer, burst, obstacles, bounds){
 function getCanvasTextBounds(){
   const margin = 16;
   const canvasRect = canvas.getBoundingClientRect();
-  let bottom = canvasRect.bottom - margin;
-  const keyNote = document.querySelector('.key-note');
-  if(keyNote){
-    const kn = keyNote.getBoundingClientRect();
-    if(kn.height > 0 && getComputedStyle(keyNote).display !== 'none') bottom = Math.min(bottom, kn.top - 10);
-  }
+  const bottom = canvasRect.bottom - margin;
   return {
     left: canvasRect.left + margin,
     top: canvasRect.top + margin,
@@ -1996,7 +2069,6 @@ function boxTopCenter(p){
 }
 function renderExplodedBurst(data, block, mapScale){
   const words = data.words?.length ? data.words : ['—'];
-  const themes = data.themes?.length ? data.themes : [];
   const count = data.countNum || Number(String(data.count || '').replace('x', '')) || 0;
   const maxScale = clamp(Math.min(viewW, viewH) / 480, 0.82, 1.65);
   const scale = clamp(block.w * mapScale / 72, 0.85, maxScale);
@@ -2004,7 +2076,6 @@ function renderExplodedBurst(data, block, mapScale){
     const tier = Math.min(i, 4);
     return `<span class="ex-word ex-word--${tier}">${word}</span>`;
   }).join('');
-  const themeHtml = themes.slice(0, 3).map(theme => `<span class="ex-theme">${theme}</span>`).join('');
   return `
     <div class="ex-burst" style="transform:scale(${scale.toFixed(3)})">
       <div class="ex-head">
@@ -2014,8 +2085,6 @@ function renderExplodedBurst(data, block, mapScale){
         </div>
       </div>
       <div class="ex-words">${wordHtml}</div>
-      ${themeHtml ? `<div class="ex-themes">${themeHtml}</div>` : ''}
-      <div class="ex-meta">frequent words · click room to explore themes</div>
     </div>
   `;
 }
@@ -2035,10 +2104,8 @@ function positionText(){
       explodeLayer.classList.remove('active');
       explodeLayer.innerHTML = '';
     }
-    if(hoverNote) hoverNote.style.opacity = '.78';
     return;
   }
-  if(hoverNote) hoverNote.style.opacity = '0';
   const data = patternData[active.id];
   if(!data) return;
   const layoutKey = explodeLayoutKey(active);

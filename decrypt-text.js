@@ -16,6 +16,42 @@
   const mounted = new WeakMap();
   let rafId = null;
   const live = new Set();
+  let wallMeasurer = null;
+
+  function getWallMeasurer(stack) {
+    if (!wallMeasurer) {
+      wallMeasurer = document.createElement('span');
+      wallMeasurer.setAttribute('aria-hidden', 'true');
+      wallMeasurer.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;pointer-events:none;white-space:nowrap;';
+      document.body.appendChild(wallMeasurer);
+    }
+    const cs = getComputedStyle(stack);
+    wallMeasurer.style.fontFamily = cs.fontFamily;
+    wallMeasurer.style.fontSize = cs.fontSize;
+    wallMeasurer.style.fontWeight = cs.fontWeight;
+    wallMeasurer.style.letterSpacing = cs.letterSpacing;
+    wallMeasurer.style.textTransform = cs.textTransform;
+    return wallMeasurer;
+  }
+
+  function measureWallPhrase(stack, text) {
+    const m = getWallMeasurer(stack);
+    m.textContent = text.toLowerCase();
+    return Math.ceil(m.getBoundingClientRect().width);
+  }
+
+  function setWallPhraseSlot(el, stack, text) {
+    const natural = measureWallPhrase(stack, text);
+    const fontSize = parseFloat(getComputedStyle(el).fontSize)
+      || parseFloat(getComputedStyle(stack).fontSize)
+      || 16;
+    const padX = fontSize * 0.16;
+    const slotPx = `${Math.ceil(natural + padX)}px`;
+    el.style.boxSizing = 'border-box';
+    el.style.width = slotPx;
+    el.style.minWidth = slotPx;
+    el.style.maxWidth = slotPx;
+  }
 
   function parseMs(value, fallback) {
     const n = Number(value);
@@ -85,12 +121,15 @@
       this.el.innerHTML = '';
       this.wordEls = [];
       const now = performance.now();
+      const wall = this.el.closest('.theme-stack');
+      if (wall) this.el.classList.add('decrypt-text--wall');
       this.words.forEach((word, i) => {
         const span = document.createElement('span');
         span.className = 'decrypt-word is-scrambling';
         span.dataset.index = String(i);
         span.setAttribute('aria-hidden', 'true');
-        span.style.setProperty('--chars', String(Math.max(word.length, 1)));
+        const charCount = Math.max(word.length, 1);
+        span.style.setProperty('--chars', String(charCount));
         this.resetWordScrambleState(span, word, i, now);
         this.wordEls.push(span);
         this.el.appendChild(span);
@@ -98,6 +137,7 @@
           this.el.appendChild(document.createTextNode(' '));
         }
       });
+      if (wall) setWallPhraseSlot(this.el, wall, this.realText);
     }
 
     bindEvents() {
@@ -138,6 +178,8 @@
     lockTheme() {
       if (this.isThemeLocked()) return;
 
+      if (this.group) this.group.classList.add('has-focus');
+
       this.wordEls.forEach((span, i) => {
         span.classList.remove('is-scrambling');
         span.classList.add('is-active', 'is-revealed');
@@ -147,8 +189,7 @@
       });
 
       this.el.classList.add('is-focused', 'is-theme-active', 'is-revealed');
-      if (this.group) this.group.classList.add('has-focus');
-      this.scrambling = true;
+      this.scrambling = false;
       ensureScrambleLoop();
     }
 
@@ -164,6 +205,8 @@
       });
 
       this.el.classList.remove('is-focused', 'is-theme-active', 'is-revealed');
+      const wall = this.el.closest('.theme-stack');
+      if (wall) setWallPhraseSlot(this.el, wall, this.realText);
       if (this.group && !this.group.querySelector('.decrypt-text.is-theme-active')) {
         this.group.classList.remove('has-focus');
       }
@@ -177,8 +220,6 @@
 
     tickScramble(now) {
       if (!this.el.isConnected || !this.scrambling || this.isThemeLocked()) return;
-
-      const slowWall = Boolean(this.group?.classList.contains('has-focus'));
 
       this.wordEls.forEach((span, i) => {
         if (isLocked(span)) return;
@@ -196,7 +237,7 @@
         span._chars[li] = randomLetter(word[li]);
         span.textContent = span._chars.join('');
 
-        const step = letterFlipInterval(this.scrambleSpeed, word, slowWall);
+        const step = letterFlipInterval(this.scrambleSpeed, word, false);
         span._nextFlip = now + step;
       });
     }
