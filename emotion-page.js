@@ -53,6 +53,7 @@ async function initEmotionPage(){
 
   document.title = `${label} — things i couldn't say out loud`;
   titleEl.textContent = label;
+  titleEl.classList.toggle('has-descenders', typeof hasTextDescenders === 'function' && hasTextDescenders(label));
   countEl.textContent = entryCount;
   metaEl.textContent = `${themes.length} themes`;
 

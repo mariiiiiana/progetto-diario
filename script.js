@@ -11,6 +11,10 @@ let mapScale = 1;
 let diaryData = null;
 let diaryLoadPromise = null;
 
+function hasTextDescenders(text){
+  return /[gjpqy]/i.test(String(text || ''));
+}
+
 function loadDiaryData() {
   if(diaryLoadPromise) return diaryLoadPromise;
   diaryLoadPromise = (async () => {
@@ -48,6 +52,14 @@ const BLOCK_HOVER_TILT_Y = 5;
 const BLOCK_RELATED_LIFT = 1.8;
 const emotionStrips = {};
 let emotionImagesReady = false;
+let emotionManifest = null;
+const emotionManifestPromise = fetch('emotion-images.json')
+  .then(res => res.ok ? res.json() : null)
+  .then(manifest => {
+    if(manifest) emotionManifest = manifest;
+    return manifest;
+  })
+  .catch(() => null);
 function loadImage(src){
   return new Promise((resolve, reject) => {
     const im = new Image();
@@ -74,9 +86,8 @@ function partitionFaceImages(images){
 }
 async function loadEmotionImages(){
   try {
-    const res = await fetch('emotion-images.json');
-    if(!res.ok) throw new Error('emotion-images.json missing');
-    const manifest = await res.json();
+    const manifest = await emotionManifestPromise;
+    if(!manifest) throw new Error('emotion-images.json missing');
     await Promise.all(Object.entries(manifest).map(async ([id, paths]) => {
       const loaded = [];
       for(const src of paths){
@@ -117,34 +128,32 @@ const EMOTION_LABELS = {
   vergogna: 'shame', colpa: 'guilt', rimpianto: 'regret', noia: 'boredom'
 };
 const THEME_LABELS = {
-  'ansia per il futuro': 'dreading the future', 'ansia per il peso': 'weight anxiety',
-  'ansia per l\'esame': 'exam nerves', 'ansia sociale': 'social anxiety',
-  'ansietà per il futuro': 'dreading the future', 'ansietà per la salute fisica': 'health anxiety',
-  'ansietà per la vita personale': 'personal life worries', 'controllo alimentare': 'restrictive eating',
+  'ansia per il peso': 'weight worries',
+  'ansia per l\'esame': 'exam nerves',
+  'ansietà per la vita personale': 'personal life worries',
+  'paura della laurea': 'thesis pressure',
+  'controllo alimentare': 'restrictive eating',
   'autocontrollo alimentare': 'food discipline', 'controllo del peso': 'weight obsession',
   'controllo della dieta': 'diet rules', 'controllo della fame': 'managing hunger',
-  'controllo dell\'alimentazione': 'eating control', 'controllo dell\'ansia': 'managing anxiety',
-  'controllo degli impulsi alimentari': 'resisting binge urges', 'controllo delle emozioni': 'keeping feelings in check',
-  'controllo emotivo': 'keeping emotions in check', 'controllo personale': 'self-control',
+  'controllo dell\'alimentazione': 'eating control', 'controllo degli impulsi alimentari': 'resisting binge urges',
+  'controllo personale': 'self-control',
   'salute mentale': 'mental health', 'ritorno a casa': 'going home', 'peso corporeo': 'body weight',
   'sentimento di inadeguatezza': 'not measuring up', 'sentimento di disperazione': 'hopelessness',
   'senso di disperazione': 'hopelessness', 'emozioni negative': 'heavy feelings',
   'emotività negative': 'heavy feelings', 'tristezza/depressione': 'feeling low',
   'scherzo': 'sarcasm',
-  'emozione negativa': 'bad mood', 'relazioni familiari': 'family dynamics',
+  'relazioni familiari': 'family dynamics',
   'attività fisica': 'exercise', 'giornata positiva': 'good day', 'giorno libero': 'day off',
   'camminata outdoor': 'walk outside', 'aspetto fisico': 'how I look', 'auto-critica': 'self-criticism',
   'auto-ostilità': 'self-loathing', 'autoostilezza negativa': 'self-loathing',
   'autovalutazione negativa': 'harsh self-judgment',
-  'autovalutazione personale': 'personal self-assessment', 'crisi emotiva': 'emotional breakdown',
+  'autovalutazione personale': 'personal self-assessment',
   'crisi d\'ansia': 'panic spiral', 'crisi alimentare': 'food falling apart', 'body image': 'body image',
-  'binge eating': 'binge eating', 'burnout': 'burnout', 'anxiety': 'anxiety', 'boredom': 'boredom',
+  'binge eating': 'binge eating', 'burnout': 'burnout',
   'aggressione verbale': 'verbal aggression', 'auto-sabotaggio': 'self-sabotage',
   'attivita fisica': 'exercise', 'peso corporeo': 'body weight', 'giornata positiva': 'good day',
-  'felicità': 'happiness', 'felicita': 'happiness', 'libertà': 'freedom', 'liberta': 'freedom',
-  'infedeltà': 'infidelity', 'infedelta': 'infidelity', 'emotività': 'emotionality', 'emotivita': 'emotionality',
+  'libertà': 'freedom', 'liberta': 'freedom',
   'inutilità': 'pointlessness', 'inutilita': 'pointlessness',
-  'sentimento di frustrazione': 'frustration', 'senso di colpa': 'guilt',
   'lunedì': 'Monday', 'martedì': 'Tuesday', 'mercoledì': 'Wednesday', 'giovedì': 'Thursday',
   'venerdì': 'Friday', 'sabato': 'Saturday', 'domenica': 'Sunday',
   'lunedi': 'Monday', 'martedi': 'Tuesday', 'mercoledi': 'Wednesday', 'giovedi': 'Thursday',
@@ -155,7 +164,7 @@ const THEME_LABELS = {
   'disturbo alimentare': 'eating disorder', 'disturbi alimentari': 'eating disorders',
   'giorno di riposo': 'rest day', 'senso di disconnessione': 'feeling disconnected', 'perdita di controllo': 'losing control',
   'spesa eccessiva': 'overspending', 'realizzazione personale': 'finding purpose',
-  'imperfezione personale': 'feeling flawed', 'abuso di cibo': 'bingeing', 'impatto emotivo': 'emotional toll',
+  'imperfezione personale': 'feeling flawed', 'abuso di cibo': 'bingeing',   'impatto emotivo': 'personal toll',
   'giorno della settimana': 'weekday', 'relazione con la madre': 'issues with mom', 'ritorno alla routine': 'back to routine',
   'senza speranza': 'hopelessness', 'ansia di controllo': 'need for control',
   'preoccupazione per l\'aspetto fisico': 'body image worries',
@@ -164,40 +173,38 @@ const THEME_LABELS = {
   'sentimento di alienazione': 'feeling alienated', 'nostalgia per l\'adolescenza': 'missing adolescence',
   'bassa soddisfazione': 'underwhelmed', 'mancanza di motivazione': 'no drive left',
   'repressione delle emozioni': 'bottling things up',
-  'sentimento di solitudine': 'loneliness', 'bruciore emotivo': 'aching inside',
-  'senso di vuoto': 'emptiness', 'rompimento di frustrazione': 'snapping from frustration',
+  'bruciore emotivo': 'aching inside',
+  'senso di vuoto': 'emptiness',
   'tornata alla normalita': 'settling back in', 'tornata alla normalità': 'settling back in',
   'gestione del tempo': 'juggling time',
   'senso di tempo che scivola via': 'time slipping away', 'modi di vita': 'ways of living',
   'rifiuto di aiuto': 'pushing help away', 'mal di testa': 'headache', 'dolori generalizzati': 'aches all over',
-  'insicurezza sociale': 'social anxiety',
-  'senso di isolamento': 'isolation', 'difficolta di adattamento': 'struggling to adjust',
+  'insicurezza sociale': 'social awkwardness',
+  'senso di isolamento': 'feeling cut off', 'difficolta di adattamento': 'struggling to adjust',
   'difficoltà di adattamento': 'struggling to adjust', 'insicurezza futura': 'uncertainty about the future',
   'senso di suffocamento': 'feeling trapped', 'odio per la situazione attuale': 'hating how things are',
   'torna a torino': 'back in Turin', 'attrazione romantica': 'crush', 'mangiare troppo': 'overeating',
-  'preoccupazione per la salute mentale': 'mental health worries', 'fare cose belle': 'trying to enjoy myself',
-  'trasformazione personale': 'trying to change', 'insicoltura emotiva': 'emotional guardedness',
-  'paura dell\'esame': 'exam dread', 'aspettative non soddisfatte': 'things fell short',
-  'fine del fine settimana': 'weekend ending', 'ansia per la fine del fine settimana': 'dreading Monday',
+  'preoccupazione per la salute mentale': 'mental health worries',
+  'trasformazione personale': 'trying to change',
+  'paura dell\'esame': 'exam nerves',
+  'aspettative non soddisfatte': 'things fell short',
+  'fine del fine settimana': 'weekend ending',
   'lavori di gruppo': 'group projects',
   'speranza di risoluzione del conflitto': 'hoping things resolve', 'disordinato alimentare': 'disordered eating',
   'progetti di gruppo': 'group projects', 'organizzazione': 'getting organized', 'partenza': 'leaving',
-  'aiuto': 'asking for help', 'famiglia': 'family', 'depressione': 'depression', 'autostima': 'self-worth',
-  'insicurezza': 'self-doubt', 'disappunto': 'letdown', 'infelicita': 'misery', 'infelicità': 'misery',
-  'motivazione': 'drive', 'stanchezza': 'exhaustion', 'preoccupazione': 'worry', 'autonomia': 'independence',
-  'angoscia': 'dread', 'irritazione': 'irritation', 'dolore': 'hurt', 'dimenticanza': 'spacing out',
-  'laurea': 'graduation', 'spesa': 'shopping', 'obesita': 'obesity', 'obesità': 'obesity',
+  'aiuto': 'asking for help', 'autostima': 'self-worth',
+  'insicurezza': 'self-doubt', 'obesita': 'obesity', 'obesità': 'obesity',
   'responsabilita': 'responsibility', 'responsabilità': 'responsibility', 'liti con i coinquilini': 'roommate fights',
   'tornare a casa': 'going home', 'rientro a casa': 'coming home',
   'auto-umiliazione': 'tearing yourself down', 'autoostilezza': 'self-loathing',
   'autovalutazione negativa': 'harsh self-judgment', 'autovalutazione': 'self-judgment',
-  'crisi emotiva': 'emotional breakdown', 'crisi d\'ansia': 'panic spiral', 'crisi alimentare': 'food falling apart',
+  'crisi d\'ansia': 'panic spiral', 'crisi alimentare': 'food falling apart',
   'aspetto fisico': 'how I look', 'camminata': 'walking', 'camminata outdoor': 'walk outside',
   'infotizione': 'crush', 'annoiosità': 'tedium', 'annoiosita': 'tedium',
   'desiderio di cambiamento': 'wanting change',
-  'senso della vita': 'purpose in life', 'stagnazione emotiva': 'stuck emotionally',
-  'ripetizione': 'same old loop', 'insoddisfazione': 'not enough', 'confusione': 'mental fog',
-  'soddisfazione': 'contentment', 'università': 'college life', 'universita': 'college life',
+  'senso della vita': 'purpose in life',
+  'ripetizione': 'same old loop',   'insoddisfazione': 'not enough', 'confusione': 'mental fog',
+  'università': 'college life', 'universita': 'college life',
   'innamoramento': 'falling for someone', 'dissociazione': 'dissociation', 'disorientamento': 'disorientation',
   'procrastinazione': 'procrastinating', 'inadeguatezza': 'not measuring up',
   'autodisprezzo': 'self-loathing', 'autoconsapevolezza': 'self-awareness', 'autodisciplina': 'discipline',
@@ -209,13 +216,12 @@ const THEME_LABELS = {
   'uso del telefono': 'too much screen time', 'cugini': 'cousins', 'ingannato': 'betrayed', uso: 'use'
 };
 const SEMANTIC_TAIL_LABELS = {
-  inadeguatezza: 'not measuring up', disperazione: 'hopelessness', frustrazione: 'frustration', colpa: 'guilt',
-  solitudine: 'loneliness', alienazione: 'alienation', vuoto: 'emptiness', isolamento: 'isolation',
-  suffocamento: 'feeling trapped', disconnessione: 'feeling disconnected', ansia: 'anxiety',
-  calma: 'calm', felicita: 'happiness', felicità: 'happiness', disappunto: 'letdown',
+  inadeguatezza: 'not measuring up', disperazione: 'hopelessness',
+  isolamento: 'feeling cut off',
+  suffocamento: 'feeling trapped', disconnessione: 'feeling disconnected',
   motivazione: 'drive', scopo: 'purpose', normalita: 'normal life', normalità: 'normal life',
-  routine: 'routine', cambiamento: 'change', morte: 'death', controllo: 'control',
-  peso: 'weight', cibo: 'food', emozioni: 'feelings', vita: 'life', futuro: 'the future',
+  routine: 'routine', cambiamento: 'change',
+  peso: 'weight', cibo: 'food', vita: 'life', futuro: 'the future',
   esame: 'exams', esami: 'exams', aspetto: 'appearance', salute: 'health', corpo: 'body',
   adolescenza: 'being young', conflitto: 'the conflict', aiuto: 'help', tempo: 'time',
   adattamento: 'adjusting', situazione: 'how things are', alimentazione: 'eating', fame: 'hunger',
@@ -446,12 +452,54 @@ const WORD_LABELS = {
   gross:'gross', grosso:'big', grossa:'big', inutile:'useless', lei:'she', altra:'other', possibile:'possible'
 };
 const EMOTION_IDS = [...POSITIVE_EMOTIONS, ...NEGATIVE_EMOTIONS, ...Object.keys(EMOTION_LABELS)];
+const THEME_LABEL_WHITELIST = new Set([
+  'sarcasm', 'heavy feelings', 'feeling low', 'hopelessness'
+]);
+const EMOTION_THEME_WORDS = [
+  ...Object.values(EMOTION_LABELS),
+  ...POSITIVE_EMOTIONS,
+  ...NEGATIVE_EMOTIONS,
+  'misery', 'dread', 'disgust', 'annoyance', 'hurt', 'contentment', 'helplessness', 'embarrassment',
+  'nervousness', 'laziness', 'discomfort', 'excitement', 'relaxation', 'desperation', 'despair',
+  'exhaustion', 'emotionality', 'violence', 'hate', 'contempt', 'pity', 'rage', 'wrath', 'sorrow',
+  'grief', 'jealousy', 'envy', 'boredom', 'irritation', 'panic', 'apathy', 'euphoria', 'happiness',
+  'unhappiness', 'depression', 'anxiety', 'stress', 'fear', 'anger', 'frustration', 'sadness', 'joy',
+  'hope', 'love', 'guilt', 'shame', 'loneliness', 'nostalgia', 'regret', 'surprise', 'trust',
+  'vulnerability', 'enthusiasm', 'uncertainty', 'gratitude', 'desire', 'serenity', 'melancholy',
+  'relief', 'isolation', 'worry', 'doubt', 'irony', 'bad mood', 'death', 'emotion', 'feelings',
+  'feeling', 'emotions', 'fury', 'bitterness', 'suffering', 'discouragement', 'desolation',
+  'humiliation', 'self-love', 'self-harm', 'studying', 'weekday', 'pointlessness', 'aimlessness',
+  'spacing out', 'impatience', 'stagnation', 'lethargy', 'mental fog', 'negative spiraling',
+  'emotional breakdown', 'emotional toll', 'emotional stress', 'emotional spiral',
+  'emotionally paralyzed', 'emotionally frozen', 'emotional growth', 'emotional reckoning',
+  'emotional guardedness', 'stuck emotionally', 'keeping emotions in check', 'keeping feelings in check',
+  'managing anxiety', 'venting frustration', 'snapping from frustration', 'anger at men',
+  'anger and frustration', 'frustration with mom', 'guilt and self-blame', 'stress and anxiety',
+  'lost love', 'body disgust', 'exam dread', 'dreading monday', 'dreading class with zeno',
+  'hormonal health worries', 'fear of living', 'fear of messing up', 'fear of gaining weight',
+  'fear of not being thin', 'fear of being unfit', 'fear of change', 'body image dread',
+  'health anxiety', 'presentation anxiety', 'graduation anxiety', 'anxiety about losing weight',
+  'anxiety about staying thin', 'food-related stress', 'source of anxiety', 'disillusionment',
+  'letdown', 'melancholy', 'boredom', 'euforia', 'euphoria', 'apatia', 'apathy', 'infuria',
+  'fury', 'disprezzo', 'contempt', 'schifo', 'disgust', 'fastidio', 'annoyance', 'pietà', 'pity'
+];
+const GENERIC_SINGLE_THEMES = new Set([
+  'weight', 'food', 'exam', 'exams', 'family', 'health', 'work', 'sleep', 'music', 'mom', 'gym',
+  'life', 'control', 'drive', 'eating', 'leaving', 'appearance', 'project', 'credits', 'discipline',
+  'shopping', 'graduation', 'thesis', 'walking', 'worry', 'doubt', 'weekday', 'saturday', 'monday',
+  'wednesday', 'tuesday', 'thursday', 'friday', 'sunday', 'studying', 'marketing', 'crush', 'concert',
+  'faith', 'abandonment', 'distraction', 'hunger', 'exercise', 'expectations', 'fears', 'graduation',
+  'commitment', 'travel', 'home', 'memory', 'freedom', 'independence', 'thesis', 'body', 'energy',
+  'party', 'phone', 'people', 'class', 'classes', 'college', 'university', 'day', 'time', 'world'
+].map(k => deaccent(k)));
+const OUT_OF_PLACE_THEME_RE = /\b(?:death|dying|mort[aeiou]\b|hormon\w*|zeno\b|dreading\b|afraid of|anxious about|weekday|monday|tuesday|wednesday|thursday|friday|saturday|sunday|infelicit|tristezza\b|felicit|emotivit|emozion|emotional(?:ly)?\s+(?:breakdown|toll|stress|spiral|growth|reckoning|guardedness|paralyzed|frozen)|keeping\s+(?:emotions|feelings)\s+in\s+check|managing\s+anxiety|venting\s+frustration|snapping\s+from\s+frustration|anger\s+(?:at|and)|frustration\s+with|guilt\s+and\s+self|stress\s+and\s+anxiety|lost\s+love|body\s+disgust|exam\s+dread|fear\s+of\b|hormonal\s+health|source\s+of\s+anxiety|emotionally?\s+paralyzed|food-related\s+stress|presentation\s+anxiety|graduation\s+anxiety|health\s+anxiety|anxiety\s+about|weight\s+anxiety|social\s+anxiety|\bfears\b|trying to enjoy myself|emozione\s*:|senso\s+di\s+(?:noia|sollievo|tristezza|felicit|euforia|apatia))\b/i;
 const EMOTION_THEME_STOP = (() => {
   const stop = new Set();
   const add = (w) => {
     const d = deaccent(String(w || '').toLowerCase().trim());
     if(d) stop.add(d);
   };
+  EMOTION_THEME_WORDS.forEach(add);
   EMOTION_IDS.forEach(add);
   Object.values(EMOTION_LABELS).forEach(add);
   EMOTION_IDS.forEach(id => add(IT_WORDS[id]));
@@ -463,10 +511,36 @@ const EMOTION_THEME_STOP = (() => {
     'emozioni negative','emozione negativa','negative emotions','negative emotion',
     'ottimismo','optimism','pessimismo','pessimism','felicita','felicità','happiness',
     'infelicita','infelicità','unhappiness','euforia','euphoria','depression','apathy',
-    'irritation','panic','panico','wrath','ira','emotion','feelings','sentiment','sentimento'
+    'irritation','panic','panico','wrath','ira','emotion','feelings','sentiment','sentimento',
+    'morte','death','ormonale','ormoni','hormonal','zeno','paura delle lezioni con zeno',
+    'preoccupazioni per la salute ormonale','ansia per la fine del fine settimana',
+    'paura del futuro','ansia per il futuro','ansietà per il futuro','paura della morte',
+    'paura della vita','paura dell errore','paura dell\'errore','paura di cambiamento',
+    'paura di non essere magra','paura di non essere in forma','paura dell obesita',
+    'paura dell\'obesità','paura della propria immagine corporea','espressione di frustrazione',
+    'odio per gli uomini','stress e ansia','colpa e autocrítica','fonte di ansia',
+    'evoluzione emotiva','biliancio emotivo','stress emotivo','paralisi emotiva',
+    'paralisi dell animo','paralisi dell\'animo','stagnazione emotiva','amore perduto',
+    'frustrazione con la madre','senso di noia','senso di sollievo','dispersione',
+    'infelicità','infelicita','tristezza','rabbia','gioia','ansia','paura','stress',
+    'solitudine','vergogna','colpa','malinconia','frustrazione','nostalgia','gratitudine'
   ].forEach(add);
   return stop;
 })();
+function isOutOfPlaceTheme(label){
+  const k = deaccent(String(label || '').toLowerCase().trim());
+  if(!k) return true;
+  if(THEME_LABEL_WHITELIST.has(k)) return false;
+  if(BANNED_THEME_LABELS.has(k)) return true;
+  if(GENERIC_SINGLE_THEMES.has(k)) return true;
+  if(EMOTION_THEME_STOP.has(k)) return true;
+  if(OUT_OF_PLACE_THEME_RE.test(k)) return true;
+  if(isEmotionTheme(k)) return true;
+  const tokens = k.split(/\s+/).filter(Boolean);
+  if(tokens.length === 1 && EMOTION_THEME_STOP.has(tokens[0])) return true;
+  if(tokens.length > 1 && tokens.every(token => EMOTION_THEME_STOP.has(token))) return true;
+  return false;
+}
 function normTheme(t){ return String(t || '').toLowerCase().trim(); }
 const RELIGION_REF_RE = /\b(?:dio|gesu|gesù|jesus|cristo|christ|god|madonna|religione|religion|fede|preghiera|chiesa|sant[oaie]?|ringraziare|ringrazia|porco\w*|amen|paradiso|inferno|diavolo|angelo|angels?|bible|bibbia|messa|vaticano|papa|prete|suora)\b/i;
 function isReligionRef(text){
@@ -488,7 +562,22 @@ const THEME_SOURCE_STOP = new Set([
   'mestruazioni', 'periodo', 'preciclo', 'problemi con il ciclo', 'preoccupazione per il ciclo',
   'problemi menstruali', 'paura del successo', 'flirt con ogni ragazzo carino che vede', 'abuso di sostanze',
   'noioso', 'motivo per scrivere la tesi', 'era ora', 'paura della morte', 'rabbia, disperazione',
-  'sentimento di disperazione e frustrazione'
+  'sentimento di disperazione e frustrazione',
+  'morte', 'death', 'preoccupazioni per la salute ormonale', 'paura delle lezioni con zeno',
+  'paura del futuro', 'ansia per il futuro', 'ansietà per il futuro', 'ansia per la fine del fine settimana',
+  'paura della morte', 'paura della vita', 'paura dell errore', 'paura dell\'errore',
+  'paura di cambiamento', 'paura di non essere magra', 'paura di non essere in forma',
+  'paura dell obesita', 'paura dell\'obesità', 'paura della propria immagine corporea',
+  'espressione di frustrazione', 'odio per gli uomini', 'stress e ansia', 'colpa e autocrítica',
+  'fonte di ansia', 'evoluzione emotiva', 'biliancio emotivo', 'stress emotivo', 'paralisi emotiva',
+  'paralisi dell animo', 'paralisi dell\'animo', 'stagnazione emotiva', 'amore perduto',
+  'frustrazione con la madre', 'senso di noia', 'senso di sollievo', 'infelicità', 'infelicita',
+  'tristezza', 'rabbia', 'gioia', 'ansia', 'paura', 'stress', 'solitudine', 'vergogna', 'colpa',
+  'malinconia', 'frustrazione', 'nostalgia', 'gratitudine', 'emozione: ansia', 'emozione: euforia',
+  'emozione: eccitazione', 'emozione negativa', 'sentimenti di rabbia e frustrazione',
+  'infelicità (-4)', 'infelicità (3)', 'tristezza (4)', 'solitudine (3)', 'boredom (2)',
+  'dispersione (5)', 'inadeguatezza (4)', 'emotività negative', 'emozioni negative',
+  'paure', 'paura della laurea', 'fare cose belle'
 ].map(k => deaccent(k)));
 const BANNED_THEME_LABELS = new Set([
   'taking on', 'giovanna', 'conditioning', 'hobby', 'evening ugly',
@@ -508,7 +597,30 @@ const BANNED_THEME_LABELS = new Set([
   "can't stop eating", 'emotional scars', 'a good lecture at last', 'period running late',
   'menstrual cycle', 'on my period', 'that time of month', 'period', "scared i'll actually succeed",
   'flirting with every cute guy', 'using to cope', 'painfully dull', 'thesis to feel useful',
-  'high time', 'afraid of dying', 'rage and hopelessness', 'hopelessness and frustration'
+  'high time', 'afraid of dying', 'rage and hopelessness', 'hopelessness and frustration',
+  'death', 'hormonal health worries', 'hormonal issues', 'dreading class with zeno', 'exam dread',
+  'dreading monday', 'dreading the future', 'misery', 'dread', 'disgust', 'annoyance', 'hurt',
+  'contentment', 'helplessness', 'embarrassment', 'nervousness', 'laziness', 'discomfort',
+  'excitement', 'relaxation', 'emotionality', 'bad mood', 'emotional breakdown', 'emotional toll',
+  'emotional stress', 'emotional spiral', 'emotionally paralyzed', 'emotionally frozen',
+  'emotional growth', 'emotional reckoning', 'emotional guardedness', 'stuck emotionally',
+  'keeping emotions in check', 'keeping feelings in check', 'managing anxiety', 'venting frustration',
+  'snapping from frustration', 'anger at men', 'anger and frustration', 'frustration with mom',
+  'guilt and self-blame', 'stress and anxiety', 'lost love', 'body disgust', 'fear of living',
+  'fear of messing up', 'fear of gaining weight', 'fear of not being thin', 'fear of being unfit',
+  'fear of change', 'body image dread', 'health anxiety', 'presentation anxiety', 'graduation anxiety',
+  'anxiety about losing weight', 'anxiety about staying thin', 'food-related stress', 'source of anxiety',
+  'weight anxiety', 'social anxiety', 'sadness', 'joy', 'anger', 'frustration', 'anxiety', 'fear',
+  'love', 'guilt', 'shame', 'loneliness', 'boredom', 'stress', 'hope', 'trust', 'surprise',
+  'melancholy', 'desire', 'gratitude', 'enthusiasm', 'vulnerability', 'uncertainty', 'nostalgia',
+  'regret', 'serenity', 'relief', 'isolation', 'misery', 'despair', 'desperation', 'irony',
+  'pointlessness', 'aimlessness', 'disillusionment', 'letdown', 'exhaustion', 'violence', 'hate',
+  'contempt', 'self-love', 'self-harm', 'studying', 'weekday', 'saturday', 'monday', 'wednesday',
+  'tuesday', 'thursday', 'friday', 'sunday', 'happiness', 'unhappiness', 'euphoria', 'apathy',
+  'emotion', 'feelings', 'feeling', 'emotions', 'mental fog', 'negative spiraling', 'impatience',
+  'stagnation', 'spacing out', 'lethargy', 'discouragement', 'desolation', 'suffering', 'bitterness',
+  'fury', 'rage', 'wrath', 'sorrow', 'grief', 'pity', 'panic', 'misery', 'disgust', 'annoyance',
+  'trying to enjoy myself', 'dreading graduation', 'fears', 'afraid of change'
 ]);
 function isBannedThemeLabel(label){
   const k = String(label || '').toLowerCase().trim();
@@ -647,17 +759,37 @@ function translateItalianPhrase(text, depth = 0){
     }],
     [/^gestione del(?:la|lo|le|li|gli)?\s+(.+)$/i, m => /tempo/i.test(m[1]) ? 'juggling time' : (part(m[1]) ? `managing ${part(m[1])}` : '')],
     [/^abuso di (.+)$/i, m => /cibo/i.test(m[1]) ? 'bingeing' : (part(m[1]) ? `misusing ${part(m[1])}` : '')],
-    [/^paura dell(?:a|')(.+)$/i, m => `dreading ${part(m[1])}`],
-    [/^paura del(?:la|lo|li|gli)?\s+(.+)$/i, m => `afraid of ${part(m[1])}`],
-    [/^paura di (.+)$/i, m => /morte/i.test(m[1]) ? '' : `afraid of ${part(m[1])}`],
-    [/^ansiet[aà] per (?:la|il|lo|l')(.+)$/i, m => {
-      if(/salute fisica/i.test(m[1])) return 'health anxiety';
-      if(/vita personale/i.test(m[1])) return 'personal life worries';
-      if(/futuro/i.test(m[1])) return 'dreading the future';
+    [/^paura dell(?:a|')(.+)$/i, m => {
+      if(/laurea/i.test(m[1])) return 'thesis pressure';
+      if(/morte|futuro|error/i.test(m[1])) return '';
       const s = part(m[1]);
-      return s ? `anxious about ${s}` : '';
+      return s ? `worried about ${s}` : '';
     }],
-    [/^ansia per (?:la|il|lo|i|gli|le|l')(.+)$/i, m => `anxious about ${part(m[1])}`],
+    [/^paura del(?:la|lo|li|gli)?\s+(.+)$/i, m => {
+      if(/morte/i.test(m[1])) return '';
+      const s = part(m[1]);
+      return s ? `worried about ${s}` : '';
+    }],
+    [/^paura di (.+)$/i, m => {
+      if(/morte|cambiamento|non essere magr|non essere in form|obesit|iniziare|vivere/i.test(m[1])) return '';
+      const s = part(m[1]);
+      return s ? `worried about ${s}` : '';
+    }],
+    [/^ansiet[aà] per (?:la|il|lo|l')(.+)$/i, m => {
+      if(/vita personale/i.test(m[1])) return 'personal life worries';
+      if(/futuro|salute fisica/i.test(m[1])) return '';
+      if(/peso/i.test(m[1])) return 'weight worries';
+      if(/esame/i.test(m[1])) return 'exam nerves';
+      const s = part(m[1]);
+      return s ? `worried about ${s}` : '';
+    }],
+    [/^ansia per (?:la|il|lo|i|gli|le|l')(.+)$/i, m => {
+      if(/futuro/i.test(m[1])) return '';
+      if(/peso/i.test(m[1])) return 'weight worries';
+      if(/esame/i.test(m[1])) return 'exam nerves';
+      const s = part(m[1]);
+      return s ? `worried about ${s}` : '';
+    }],
     [/^ansia di (.+)$/i, m => /controllo/i.test(m[1]) ? 'need for control' : `anxious about ${part(m[1])}`],
     [/^preoccupazione per (?:la|il|lo|l')(.+)$/i, m => `worried about ${part(m[1])}`],
     [/^odio per (?:la|il|lo|l')(.+)$/i, m => /situazione attuale/i.test(m[0]) ? 'hating how things are' : `hating ${part(m[1])}`],
@@ -736,7 +868,7 @@ function translateItalianPhrase(text, depth = 0){
     [/^presa di (.+)$/i, m => /responsabilit/i.test(m[1]) ? 'stepping up' : `taking on ${part(m[1])}`],
     [/^rifiuto di (.+)$/i, m => /aiuto/i.test(m[1]) ? 'pushing help away' : `refusing ${part(m[1])}`],
     [/^modi di (.+)$/i, m => /vita/i.test(m[1]) ? 'ways of living' : `ways of ${part(m[1])}`],
-    [/^fare (.+)$/i, m => /cose belle/i.test(m[1]) ? 'trying to enjoy myself' : `doing ${part(m[1])}`],
+    [/^fare (.+)$/i, m => /cose belle/i.test(m[1]) ? '' : `doing ${part(m[1])}`],
     [/^mangiare (.+)$/i, m => /troppo/i.test(m[1]) ? 'overeating' : `eating ${part(m[1])}`],
     [/^liti con (?:i|gli|le)?\s*(.+)$/i, m => /coinquilini/i.test(m[1]) ? 'roommate fights' : `fighting with ${part(m[1])}`],
     [/^flirt con (.+)$/i, () => ''],
@@ -814,11 +946,11 @@ function themeLabel(theme){
   const raw = themeKey(theme);
   if(/\bgiovanna\b/i.test(raw)) return '';
   const preset = lookupThemeLabel(raw);
-  if(preset && !isEmotionTheme(preset) && !isBannedThemeLabel(preset) && !isLiteralThemeGarbage(preset)) return preset;
+  if(preset && !isOutOfPlaceTheme(preset) && !isLiteralThemeGarbage(preset)) return preset;
   if(isThemeNoise(theme)) return '';
   if(isEmotionTheme(theme)) return '';
   const out = englishThemeLabel(theme);
-  if(!out || looksItalian(out) || isEmotionTheme(out) || isBannedThemeLabel(out) || isLiteralThemeGarbage(out)) return '';
+  if(!out || looksItalian(out) || isOutOfPlaceTheme(out) || isLiteralThemeGarbage(out)) return '';
   if(/\bgiovanna\b/i.test(out)) return '';
   return out;
 }
@@ -906,7 +1038,7 @@ const EMOTION_WORD_OVERRIDES = {
   noia: ['boredom', 'routine', 'nothing', 'waiting', 'empty']
 };
 const EMOTION_THEME_OVERRIDES = {
-  tristezza: ['isolation', 'memory', 'home'],
+  tristezza: ['memory', 'home', 'distance'],
   sollievo: ['autonomy', 'return home', 'pause'],
   stress: ['routine', 'work', 'tiredness'],
   serenita: ['rest', 'calm', 'free day'],
@@ -914,43 +1046,44 @@ const EMOTION_THEME_OVERRIDES = {
   desiderio: ['departure', 'future', 'motivation'],
   frustrazione: ['self-criticism', 'disappointment', 'study'],
   speranza: ['motivation', 'change', 'health'],
-  rabbia: ['conflict', 'hate', 'humiliation'],
+  rabbia: ['conflict', 'humiliation', 'arguments'],
   gioia: ['freedom', 'health', 'good day'],
-  incertezza: ['doubt', 'confusion', 'choices'],
-  entusiasmo: ['excitement', 'new beginnings', 'energy'],
+  incertezza: ['confusion', 'choices', 'future'],
+  entusiasmo: ['new beginnings', 'energy', 'projects'],
   vulnerabilita: ['humiliation', 'exposure', 'fragility'],
-  gratitudine: ['reflection', 'support', 'gratitude'],
-  solitudine: ['isolation', 'abandonment', 'home'],
+  gratitudine: ['reflection', 'support', 'connection'],
+  solitudine: ['abandonment', 'home', 'distance'],
   sorpresa: ['unexpected', 'recovery', 'moment'],
-  ansia: ['worry', 'control', 'future'],
-  paura: ['fear', 'uncertainty', 'body'],
+  ansia: ['control', 'future', 'body image'],
+  paura: ['uncertainty', 'body image', 'change'],
   nostalgia: ['memory', 'past', 'distance'],
   amore: ['relationships', 'family', 'connection'],
-  fiducia: ['trust', 'exams', 'relationships'],
+  fiducia: ['exams', 'relationships', 'commitment'],
   vergogna: ['humiliation', 'body image', 'exposure'],
-  colpa: ['guilt', 'self-blame', 'regret'],
-  rimpianto: ['regret', 'past', 'loss'],
-  noia: ['boredom', 'routine', 'emptiness']
+  colpa: ['self-blame', 'regret', 'past'],
+  rimpianto: ['past', 'loss', 'choices'],
+  noia: ['routine', 'emptiness', 'waiting']
 };
 const FALLBACK_WORDS = {
   tristezza:'alone · emptiness · crying · memory · loss', sollievo:'return · home · goodbye · pause · calm', stress:'study · list · waiting', malinconia:'night · void · distance',
   frustrazione:'again · enough · loop', ansia:'tomorrow · body · waiting', solitudine:'home · room · silence',
   desiderio:'tomorrow · going out · again', speranza:'possible · life · starting · good · change',
-  noia:'boredom · routine · nothing · waiting · empty'
+  noia:'routine · nothing · waiting · empty'
 };
 const FALLBACK_THEMES = {
-  tristezza:'isolation, memory, home', sollievo:'autonomy, return home, pause',
+  tristezza:'memory, home, distance', sollievo:'autonomy, return home, pause',
   stress:'routine, work, tiredness', serenita:'rest, calm, free day',
   malinconia:'memory, distance, night', desiderio:'departure, future, motivation',
   frustrazione:'self-criticism, disappointment, study', speranza:'motivation, change, health',
-  rabbia:'conflict, hate, humiliation', gioia:'freedom, health, good day',
-  incertezza:'doubt, confusion, choices', entusiasmo:'excitement, new beginnings, energy',
-  vulnerabilita:'humiliation, exposure, fragility', gratitudine:'reflection, support, gratitude',
-  solitudine:'isolation, abandonment, home', sorpresa:'unexpected, recovery, moment',
-  ansia:'worry, control, future', paura:'fear, uncertainty, body',
+  rabbia:'conflict, humiliation, arguments', gioia:'freedom, health, good day',
+  incertezza:'confusion, choices, future', entusiasmo:'new beginnings, energy, projects',
+  vulnerabilita:'humiliation, exposure, fragility', gratitudine:'reflection, support, connection',
+  solitudine:'abandonment, home, distance', sorpresa:'unexpected, recovery, moment',
+  ansia:'control, future, body image', paura:'uncertainty, body image, change',
   nostalgia:'memory, past, distance', amore:'relationships, family, connection',
-  fiducia:'trust, exams, relationships', vergogna:'humiliation, body image, exposure',
-  noia:'boredom, routine, emptiness'
+  fiducia:'exams, relationships, commitment', vergogna:'humiliation, body image, exposure',
+  colpa:'self-blame, regret, past', rimpianto:'past, loss, choices',
+  noia:'routine, emptiness, waiting'
 };
 const FALLBACK_COUNTS = {tristezza:240,stress:159,sollievo:180,frustrazione:113,malinconia:128,incertezza:124,desiderio:189,rabbia:110,vulnerabilita:95,solitudine:86,noia:24};
 
@@ -1118,7 +1251,7 @@ function topThemesForEmotion(entries, emotion, limit = 3){
       const k = normTheme(t);
       if(!k || k === emotion || isThemeNoise(t) || isEmotionTheme(t) || isIncongruentTheme(t, emotion)) return;
       const label = themeLabel(t);
-      if(!label || isEmotionTheme(label)) return;
+      if(!label || isOutOfPlaceTheme(label)) return;
       const key = themeDisplayKey(label);
       const prev = counts.get(key);
       counts.set(key, { label, weight: (prev?.weight || 0) + weight });
@@ -2030,10 +2163,16 @@ function fitBurstTitle(burst){
 function layoutExplodeBurst(burst){
   const title = burst.querySelector('.ex-title');
   const headText = burst.querySelector('.ex-head-text');
-  if(title) title.style.paddingLeft = '';
+  if(title){
+    title.style.paddingLeft = '';
+    title.classList.toggle('has-descenders', hasTextDescenders(title.textContent));
+  }
   if(headText) headText.style.marginLeft = '';
   fitBurstTitle(burst);
   syncBurstTypeScale(burst);
+  burst.querySelectorAll('.ex-word').forEach(el => {
+    el.classList.toggle('has-descenders', hasTextDescenders(el.textContent));
+  });
 }
 function enforceTitleClearance(layer, burst){
   if(!burst) return;
@@ -2259,6 +2398,177 @@ function shouldSkipLanding(){
   return window.location.hash === '#map';
 }
 
+const LANDING_UNITS = [
+  { word: 'everything', slots: 3, wordFirst: true },
+  { word: 'i', slots: 2, wordFirst: false },
+  { word: "couldn't", slots: 2, wordFirst: false },
+  { word: 'say', slots: 2, wordFirst: false },
+  { word: 'outloud', slots: 3, wordFirst: true }
+];
+const LANDING_FALLBACK_IMAGES = [
+  'box_emozioni/Amore/2024-02-17_40CF126E-0917-4553-928C-21FB74A00438.webp',
+  'box_emozioni/Amore/2024-02-28_1D28872E-69D0-49C2-9879-5090370FFB2A.webp',
+  'box_emozioni/Amore/2024-02-28_2479BEF8-291C-4268-BADD-174285EEE9B7.webp',
+  'box_emozioni/Amore/2024-03-07_188D4B05-536D-402D-9FD8-964F2F59A19F.webp',
+  'box_emozioni/Amore/2024-08-26_4C37321D-C6DA-46C7-A727-8C81CFB2BCD3.webp',
+  'box_emozioni/Amore/2024-08-26_549D177D-8A53-40B4-8717-C416CAA04C3E.webp',
+  'box_emozioni/Amore/2024-09-15_CB07ABE3-5BA0-4565-8295-68993BC42A99.webp',
+  'box_emozioni/Amore/2024-11-21_C936C180-A99B-417B-89B4-9E82D54315B2.webp',
+  'box_emozioni/Amore/2025-03-14_9ED7C464-7B1A-4D44-BB1A-F4D7EC1F3A2A.webp',
+  'box_emozioni/Amore/2025-04-04_F030B08F-2E0C-402F-AAE1-A1078C82B362.webp',
+  'box_emozioni/Amore/2025-10-09_D6F2BA27-9EE7-436D-98D4-4F9FA4377FF7.webp',
+  'box_emozioni/Amore/2025-12-23_1A3955FD-D52A-4B6A-A3B4-63E5A92922FE.webp',
+  'box_emozioni/Amore/2025-12-29_2BE5796C-9978-400C-B5D3-345E690BEB0F.webp',
+  'box_emozioni/Amore/2025-12-29_549BBA9E-974C-4044-9668-49CB2DEA9E2C.webp',
+  'box_emozioni/Amore/2025-12-30_4CF7E8E1-7059-480A-9DEB-0C600C5D8907.webp',
+  'box_emozioni/Amore/2025-12-30_55285026-EFA1-4506-BD7B-3BE92FD9B6BE.webp',
+  'box_emozioni/Amore/2025-12-30_93EB2231-8454-4C5E-A442-082B0752E8DD.webp',
+  'box_emozioni/Amore/2026-03-20_71FB6CA4-AF2A-489F-B3CA-C3CFE39BA6E6.webp',
+  'box_emozioni/Amore/2026-03-20_92945F18-6993-4AFA-AF14-F764A316BE00.webp',
+  'box_emozioni/Amore/2026-03-23_4629AD2F-0160-45D9-8665-399B8602B565.webp',
+  'box_emozioni/Ansia/2024-05-28_39BD31B8-248E-4778-8687-273B78359FC6.webp',
+  'box_emozioni/Ansia/2024-09-14_A0A8A516-E8BC-4943-A2DB-68CD46C317E4.webp',
+  'box_emozioni/Ansia/2024-09-14_B1F3C022-8DFF-4584-B658-C6692CCF874F.webp',
+  'box_emozioni/Ansia/2024-09-18_09F1EACE-80B6-4AE3-B01D-1264E58E6EB4.webp',
+  'box_emozioni/Ansia/2024-09-18_0EF43A83-0303-4611-8D70-B3B384438681.webp',
+  'box_emozioni/Ansia/2024-09-18_7C942C65-1131-401E-B8DA-2624762BD35B.webp',
+  'box_emozioni/Ansia/2024-09-18_F4400609-575A-4C49-8B83-BEC5E2CCB58B.webp',
+  'box_emozioni/Ansia/2024-11-27_CBD79A9D-7297-412F-A561-C2A87A1232B6.webp',
+  'box_emozioni/Ansia/2024-12-16_7FDCF547-8063-4E04-A155-1E224AFC16C6.webp',
+  'box_emozioni/Ansia/2024-12-28_71FED2AF-9A28-48EE-B050-1D5C7E9F9EA9.webp',
+  'box_emozioni/Ansia/2024-12-28_B7B55896-BE61-42BF-BB2B-A1830B2A4D0C.webp',
+  'box_emozioni/Ansia/2024-12-28_E1A0BB0A-9994-450A-8497-F5D28D1B8494.webp'
+];
+
+function shuffleList(list){
+  const out = [...list];
+  for(let i = out.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+async function landingImagePool(limit = 5){
+  await emotionManifestPromise;
+  let all = emotionManifest ? Object.values(emotionManifest).flat().filter(Boolean) : [];
+  if(!all.length){
+    try {
+      const res = await fetch('emotion-images.json');
+      if(res.ok){
+        const manifest = await res.json();
+        emotionManifest = manifest;
+        all = Object.values(manifest).flat().filter(Boolean);
+      }
+    } catch { /* file:// or offline */ }
+  }
+  if(!all.length) all = [...LANDING_FALLBACK_IMAGES];
+  const shuffled = shuffleList(all);
+  const picked = [];
+  const seen = new Set();
+  for(const src of shuffled){
+    if(seen.has(src)) continue;
+    seen.add(src);
+    picked.push(src);
+    if(picked.length >= limit) break;
+  }
+  return picked;
+}
+
+function landingRevealDelay(){
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ? 0 : 480;
+}
+
+async function revealLandingPhotos(slots, sources){
+  if(!slots.length) return;
+  const delay = landingRevealDelay();
+  const pool = sources.length ? sources : shuffleList([...LANDING_FALLBACK_IMAGES]);
+  for(let i = 0; i < slots.length; i++){
+    const slot = slots[i];
+    const src = pool[i % pool.length];
+    slot.replaceChildren();
+    const img = document.createElement('img');
+    img.alt = '';
+    img.decoding = 'async';
+    img.loading = 'eager';
+    img.src = src;
+    slot.appendChild(img);
+    await new Promise(resolve => {
+      let done = false;
+      const finish = () => {
+        if(done) return;
+        done = true;
+        slot.classList.add('is-visible');
+        resolve();
+      };
+      if(img.complete && img.naturalWidth) finish();
+      else {
+        img.addEventListener('load', finish, { once: true });
+        img.addEventListener('error', finish, { once: true });
+        setTimeout(finish, 12000);
+      }
+    });
+    if(delay && i < slots.length - 1) await new Promise(r => setTimeout(r, delay));
+  }
+}
+
+async function initLandingCollage(){
+  if(typeof window.bootLandingPhotos === 'function'){
+    return window.bootLandingPhotos();
+  }
+  const cloud = document.getElementById('landingCloud');
+  const slots = cloud?.querySelectorAll('.landing-slot');
+  if(!slots?.length) return;
+  const slotList = [...slots];
+  const sources = await landingImagePool(slotList.length);
+  await revealLandingPhotos(slotList, sources);
+}
+
+function appendLandingUnit(parent, item, slots){
+  const unit = document.createElement('span');
+  unit.className = `landing-unit${item.wordFirst ? ' landing-unit--word-first' : ''}`;
+  const open = document.createElement('span');
+  open.className = 'landing-paren landing-paren--open';
+  open.textContent = '(';
+  unit.appendChild(open);
+  const slotWrap = document.createElement('span');
+  slotWrap.className = 'landing-slots';
+  const slotCount = Math.max(1, item.slots || 1);
+  for(let i = 0; i < slotCount; i++){
+    const slot = document.createElement('div');
+    slot.className = 'landing-slot';
+    slotWrap.appendChild(slot);
+    slots.push(slot);
+  }
+  const word = document.createElement('span');
+  word.className = 'landing-word';
+  if(hasTextDescenders(item.word)) word.classList.add('has-descenders');
+  word.textContent = item.word;
+  if(item.wordFirst){
+    unit.appendChild(word);
+    unit.appendChild(slotWrap);
+  } else {
+    unit.appendChild(slotWrap);
+    unit.appendChild(word);
+  }
+  const close = document.createElement('span');
+  close.className = 'landing-paren landing-paren--close';
+  close.textContent = ')';
+  unit.appendChild(close);
+  parent.appendChild(unit);
+}
+
+function buildLandingCollage(cloud){
+  if(!cloud) return [];
+  cloud.innerHTML = '';
+  const slots = [];
+  const phrase = document.createElement('div');
+  phrase.className = 'landing-phrase';
+  LANDING_UNITS.forEach(item => appendLandingUnit(phrase, item, slots));
+  cloud.appendChild(phrase);
+  return slots;
+}
+
 function dismissLanding(){
   const landing = document.getElementById('landing');
   const poster = document.getElementById('poster');
@@ -2281,6 +2591,7 @@ async function bootMapExperience(){
 function initLanding(){
   const landing = document.getElementById('landing');
   const enter = document.getElementById('landingEnter');
+  const cloud = document.getElementById('landingCloud');
   if(!landing || !enter){
     bootMapExperience();
     return;
@@ -2289,9 +2600,19 @@ function initLanding(){
     bootMapExperience();
     return;
   }
+  landing.classList.remove('is-dismissed');
+  landing.removeAttribute('aria-hidden');
+  landing.style.display = '';
   document.body.classList.add('landing-active');
+  if(cloud && !cloud.querySelector('.landing-slot')){
+    buildLandingCollage(cloud);
+  }
+  window.addEventListener('pageshow', e => {
+    if(!e.persisted || shouldSkipLanding()) return;
+    if(typeof window.bootLandingPhotos === 'function') void window.bootLandingPhotos();
+    else void initLandingCollage().catch(err => console.error('Landing collage error:', err));
+  });
   enter.addEventListener('click', () => { bootMapExperience(); });
-  enter.focus();
 }
 
 function initGuide(){

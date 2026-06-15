@@ -75,6 +75,10 @@
     return span.classList.contains('is-active');
   }
 
+  function wordHasDescenders(word) {
+    return /[gjpqy]/i.test(word);
+  }
+
   class DecryptText {
     constructor(el) {
       this.el = el;
@@ -126,6 +130,7 @@
       this.words.forEach((word, i) => {
         const span = document.createElement('span');
         span.className = 'decrypt-word is-scrambling';
+        if (wordHasDescenders(word)) span.classList.add('has-descenders');
         span.dataset.index = String(i);
         span.setAttribute('aria-hidden', 'true');
         const charCount = Math.max(word.length, 1);
@@ -138,6 +143,7 @@
         }
       });
       if (wall) setWallPhraseSlot(this.el, wall, this.realText);
+      this.el.classList.toggle('has-descenders', this.words.some(wordHasDescenders));
     }
 
     bindEvents() {

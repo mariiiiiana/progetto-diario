@@ -6,17 +6,70 @@
 <title>things i couldn't say out loud</title>
 <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="landing-active">
 <div class="landing" id="landing">
-  <div class="landing-inner">
-    <h1 class="landing-title">things i couldn't say out loud</h1>
-    <p class="landing-subtitle">a recolection of personal experiences</p>
-    <button class="landing-enter" id="landingEnter" type="button">enter archive</button>
+  <div class="landing-stage">
+    <h1 class="landing-sr-title">everything i couldn't say outloud</h1>
+    <div class="landing-cloud" id="landingCloud">
+      <div class="landing-phrase">
+        <span class="landing-unit landing-unit--word-first">
+          <span class="landing-paren landing-paren--open">(</span>
+          <span class="landing-word">everything</span>
+          <span class="landing-slots">
+            <div class="landing-slot"></div>
+            <div class="landing-slot"></div>
+            <div class="landing-slot"></div>
+          </span>
+          <span class="landing-paren landing-paren--close">)</span>
+        </span>
+        <span class="landing-unit">
+          <span class="landing-paren landing-paren--open">(</span>
+          <span class="landing-slots">
+            <div class="landing-slot"></div>
+            <div class="landing-slot"></div>
+          </span>
+          <span class="landing-word">i</span>
+          <span class="landing-paren landing-paren--close">)</span>
+        </span>
+        <span class="landing-unit">
+          <span class="landing-paren landing-paren--open">(</span>
+          <span class="landing-slots">
+            <div class="landing-slot"></div>
+            <div class="landing-slot"></div>
+          </span>
+          <span class="landing-word has-descenders">couldn't</span>
+          <span class="landing-paren landing-paren--close">)</span>
+        </span>
+        <span class="landing-unit">
+          <span class="landing-paren landing-paren--open">(</span>
+          <span class="landing-slots">
+            <div class="landing-slot"></div>
+            <div class="landing-slot"></div>
+          </span>
+          <span class="landing-word has-descenders">say</span>
+          <span class="landing-paren landing-paren--close">)</span>
+        </span>
+        <span class="landing-unit landing-unit--word-first">
+          <span class="landing-paren landing-paren--open">(</span>
+          <span class="landing-word">outloud</span>
+          <span class="landing-slots">
+            <div class="landing-slot"></div>
+            <div class="landing-slot"></div>
+            <div class="landing-slot"></div>
+          </span>
+          <span class="landing-paren landing-paren--close">)</span>
+        </span>
+      </div>
+    </div>
+    <div class="landing-ui">
+      <p class="landing-subtitle">a recolection of personal experiences</p>
+      <button class="landing-enter" id="landingEnter" type="button">explore</button>
+    </div>
   </div>
 </div>
 <div class="poster" id="poster" aria-hidden="true">
   <header class="site-header">
-    <div class="site-brand">things i couldn't say out loud</div>
+    <div class="site-brand">(everything i couldn't say outloud)</div>
     <button class="guide-trigger" id="guideTrigger" type="button" aria-label="Show guide">how to</button>
   </header>
   <div class="stage">
@@ -38,6 +91,7 @@
     </div>
   </div>
 </div>
+<script src="landing-photos.js"></script>
 <script src="theme-semantic-labels.js"></script>
 <script src="script.js"></script>
 </body>

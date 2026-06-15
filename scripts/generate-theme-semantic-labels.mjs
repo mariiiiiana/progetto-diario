@@ -12,23 +12,47 @@ const data = JSON.parse(fs.readFileSync(path.join(root, 'dati_diario_landing.jso
 const deaccent = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const themeKey = (t) => String(t || '').trim().toLowerCase().replace(/\s*\(\d+\)\s*/g, ' ').replace(/\s+/g, ' ').trim();
 
+const WHITELIST_LABELS = new Set(['sarcasm', 'heavy feelings', 'feeling low', 'hopelessness']);
+const REJECT_LABELS = new Set([
+  'death', 'misery', 'dread', 'disgust', 'annoyance', 'hurt', 'contentment', 'helplessness',
+  'embarrassment', 'nervousness', 'laziness', 'discomfort', 'excitement', 'relaxation',
+  'emotionality', 'bad mood', 'emotional breakdown', 'emotional toll', 'emotional stress',
+  'emotional spiral', 'emotionally paralyzed', 'emotionally frozen', 'emotional growth',
+  'emotional reckoning', 'emotional guardedness', 'stuck emotionally', 'keeping emotions in check',
+  'keeping feelings in check', 'managing anxiety', 'venting frustration', 'snapping from frustration',
+  'anger at men', 'anger and frustration', 'frustration with mom', 'guilt and self-blame',
+  'stress and anxiety', 'lost love', 'body disgust', 'exam dread', 'dreading monday',
+  'dreading class with zeno', 'hormonal health worries', 'fear of living', 'fear of messing up',
+  'fear of gaining weight', 'fear of not being thin', 'fear of being unfit', 'fear of change',
+  'body image dread', 'health anxiety', 'presentation anxiety', 'graduation anxiety',
+  'anxiety about losing weight', 'anxiety about staying thin', 'food-related stress',
+  'source of anxiety', 'weight anxiety', 'social anxiety', 'dreading the future',
+  'sadness', 'joy', 'anger', 'frustration', 'anxiety', 'fear', 'love', 'guilt', 'shame',
+  'loneliness', 'boredom', 'stress', 'hope', 'trust', 'surprise', 'melancholy', 'desire',
+  'gratitude', 'enthusiasm', 'vulnerability', 'uncertainty', 'nostalgia', 'regret', 'serenity',
+  'relief', 'isolation', 'despair', 'desperation', 'irony', 'pointlessness', 'aimlessness',
+  'disillusionment', 'letdown', 'exhaustion', 'violence', 'hate', 'contempt', 'self-love',
+  'self-harm', 'studying', 'weekday', 'saturday', 'monday', 'wednesday', 'happiness',
+  'unhappiness', 'euphoria', 'apathy', 'emotion', 'feelings', 'feeling', 'emotions',
+  'happiness', 'loneliness', 'panic', 'misery', 'disgust', 'annoyance', 'mental fog',
+  'negative spiraling', 'impatience', 'stagnation', 'spacing out', 'lethargy', 'discouragement',
+  'desolation', 'suffering', 'bitterness', 'fury', 'rage', 'wrath', 'sorrow', 'grief', 'pity'
+].map(k => deaccent(k)));
+const REJECT_LABEL_RE = /\b(?:death|dying|mort[aeiou]\b|hormon\w*|zeno\b|dreading\s+class|weekday|monday|tuesday|wednesday|thursday|friday|saturday|sunday|infelicit|tristezza\b|felicit|emotivit|emozion|emotional(?:ly)?\s+(?:breakdown|toll|stress|spiral|growth|reckoning|guardedness|paralyzed|frozen)|keeping\s+(?:emotions|feelings)\s+in\s+check|managing\s+anxiety|venting\s+frustration|snapping\s+from\s+frustration|anger\s+(?:at|and)|frustration\s+with|guilt\s+and\s+self|stress\s+and\s+anxiety|lost\s+love|body\s+disgust|exam\s+dread|dreading\s+monday|fear\s+of\s+(?:living|messing|gaining|not\s+being|being\s+unfit|change)|hormonal\s+health|source\s+of\s+anxiety|emotionally?\s+paralyzed|food-related\s+stress|presentation\s+anxiety|graduation\s+anxiety|health\s+anxiety|anxiety\s+about)\b/i;
+function shouldRejectLabel(label) {
+  const k = deaccent(String(label || '').toLowerCase().trim());
+  if (!k || WHITELIST_LABELS.has(k)) return false;
+  if (REJECT_LABELS.has(k)) return true;
+  if (REJECT_LABEL_RE.test(k)) return true;
+  return false;
+}
+
 /** Hand-curated semantic labels (Italian theme -> English meaning). */
 const EXPLICIT = {
   'taglio dei capelli': 'haircut',
   'colorazione dei capelli': 'dyeing hair',
-  'paura del futuro': 'dreading the future',
-  'paura dell\'esame': 'exam dread',
-  'paura delle lezioni con zeno': 'dreading class with Zeno',
   'paura di iniziare': 'afraid to start',
   'paura di cambiamento': 'fear of change',
-  'paura del peso': 'weight anxiety',
-  'paura di non essere magra': 'fear of not being thin',
-  'paura di non essere in forma': 'fear of being out of shape',
-  'paura dell\'obesità': 'fear of gaining weight',
-  'paura della propria immagine corporea': 'body image dread',
-  'paura della vita': 'fear of living',
-  'paura dell\'errore': 'fear of messing up',
-  'paura della laurea': 'graduation anxiety',
   'fuga dalla famiglia': 'wanting to escape family',
   'fuga dalle preoccupazioni': 'escaping worry',
   'fuga': 'wanting to run away',
@@ -42,7 +66,6 @@ const EXPLICIT = {
   'scrittura della lettera motivazionale': 'writing a motivation letter',
   'consumo eccessivo di alcool': 'drinking too much',
   'acquisto di un nuovo guardaroba': 'new wardrobe shopping',
-  'preoccupazioni per la salute ormonale': 'hormonal health worries',
   'speranza di accettazione': 'hoping to be accepted',
   'incapacità di esprimersi': 'unable to speak up',
   'incertezza sul futuro': 'uncertainty about the future',
@@ -84,7 +107,6 @@ const EXPLICIT = {
   'spirale emotiva': 'emotional spiral',
   'problemi di motivazione': 'motivation struggles',
   'stress e ansia': 'stress and anxiety',
-  'guerra interna': 'inner conflict',
   'crisi di controllo dei desideri': 'losing control of urges',
   'ossessione per il cibo': 'food obsession',
   'pensieri alimentari': 'food thoughts',
@@ -106,15 +128,15 @@ const EXPLICIT = {
   'abbandono dell\'università': 'dropping out of college',
   'impegno accademico': 'academic pressure',
   'post laurea': 'after graduation',
-  'ansia di perdita di peso': 'anxiety about losing weight',
-  'ansia di essere magro': 'anxiety about staying thin',
-  'ansia per il peso': 'weight anxiety',
+  'ansia di perdita di peso': 'weight loss worries',
+  'ansia di essere magro': 'staying thin worries',
+  'ansia per il peso': 'weight worries',
   'ansia per l\'esame': 'exam nerves',
   'preoccupazione per l\'immagine corporea': 'body image worries',
   'preoccupazione per il peso': 'weight worries',
   'preoccupazione per la salute': 'health worries',
   'preoccupazioni personali': 'personal worries',
-  'preoccupazioni per la presentazione': 'presentation anxiety',
+  'preoccupazioni per la presentazione': 'presentation nerves',
   'preoccupazioni per l\'aspetto fisico': 'appearance worries',
   'lavoro e produttività': 'work and productivity',
   'salute e benessere': 'health and wellbeing',
@@ -218,7 +240,6 @@ const EXPLICIT = {
   'progetti di gruppo': 'group projects',
   'cerca casa a torino': 'apartment hunt in Turin',
   'fine del fine settimana': 'weekend ending',
-  'ansia per la fine del fine settimana': 'dreading Monday',
   'identità': 'identity',
   'identità personale': 'sense of identity',
   'autovalutazione personale': 'self-judgment',
@@ -275,7 +296,6 @@ const EXPLICIT = {
   'trauma cranico': 'head trauma',
   'studi marketing': 'marketing studies',
   'web design': 'web design',
-  'ansietà per la salute fisica': 'health anxiety',
   'ansietà per la vita personale': 'personal life worries',
   'ansietà per il futuro': 'dreading the future',
   'salute e benessere': 'health and wellbeing',
@@ -314,10 +334,10 @@ function inferSemantic(raw) {
   const k = deaccent(raw);
   const rules = [
     [/^ansiet[aà] per (?:la|il|lo|l')(.+)$/i, m => {
-      if (/salute fisica/i.test(m[1])) return 'health anxiety';
       if (/vita personale/i.test(m[1])) return 'personal life worries';
-      if (/futuro/i.test(m[1])) return 'dreading the future';
-      return 'anxiety about life';
+      if (/peso/i.test(m[1])) return 'weight worries';
+      if (/esame/i.test(m[1])) return 'exam nerves';
+      return null;
     }],
     [/^aspirazione a (.+)$/i, m => /vita/i.test(m[1]) ? 'wanting a healthier life' : null],
     [/^incapacit[aà] di (.+)$/i, m => /esprimersi/i.test(m[1]) ? 'unable to express myself' : null],
@@ -430,15 +450,21 @@ for (const e of data) {
   }
 }
 
-const out = { ...EXPLICIT };
+const out = {};
+for (const [k, v] of Object.entries(EXPLICIT)) {
+  if (!shouldRejectLabel(v)) out[k] = v;
+}
 for (const [k] of themes) {
   if (THEME_STOP.has(deaccent(k))) continue;
   if (out[k]) continue;
   const inferred = inferSemantic(k);
-  if (inferred) { out[k] = inferred; continue; }
+  if (inferred && !shouldRejectLabel(inferred)) { out[k] = inferred; continue; }
   const dk = deaccent(k);
   if (SINGLE_WORD[dk] || SINGLE_WORD[k]) {
-    if (!k.includes(' ')) out[k] = SINGLE_WORD[dk] || SINGLE_WORD[k];
+    if (!k.includes(' ')) {
+      const label = SINGLE_WORD[dk] || SINGLE_WORD[k];
+      if (!shouldRejectLabel(label)) out[k] = label;
+    }
   }
 }
 
