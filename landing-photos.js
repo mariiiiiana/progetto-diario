@@ -1,4 +1,5 @@
 (function(){
+
   const FALLBACK = [
     'box_emozioni/Amore/2024-02-17_40CF126E-0917-4553-928C-21FB74A00438.webp',
     'box_emozioni/Amore/2024-02-28_1D28872E-69D0-49C2-9879-5090370FFB2A.webp',
@@ -34,6 +35,25 @@
     'box_emozioni/Ansia/2024-12-28_E1A0BB0A-9994-450A-8497-F5D28D1B8494.webp'
   ];
 
+  // Globalizziamo la blacklist convertita in minuscolo per massima sicurezza
+  const BLACKLIST = [
+    "2024-10-06_D0D5BCE7-DA5A-477E-805A-3B9D595B6BD7",
+    "2024-10-06_519824B3-FDF5-49B4-BEF8-A3178AA42320",
+    "2024-12-09_9522D750-F088-48B1-9EA2-9ED3CEE713A7",
+    "2024-12-09_BEF3F15A-0536-479A-8981-EE44CC94A8D5",
+    "2024-12-16_7FDCF547-8063-4E04-A155-1E224AFC16C6",
+    "2025-02-12_46FD8C72-C2A6-4DB4-9641-1190129C7C41",
+    "2025-02-12_F2EF8492-BB8F-4C67-B671-74895ECF8324",
+    "2024-12-14_8D45A232-7C4C-4597-B212-F535496C3F05"
+  ].map(id => id.toLowerCase());
+
+  // Funzione helper riutilizzabile ovunque per controllare l'esclusione
+  function isBlacklisted(src) {
+    if (!src) return true;
+    const urlLower = src.toLowerCase();
+    return BLACKLIST.some(id => urlLower.includes(id));
+  }
+
   function shuffle(list){
     const out = [...list];
     for(let i = out.length - 1; i > 0; i--){
@@ -53,6 +73,7 @@
 
   async function imagePool(limit){
     let all = [];
+    
     try {
       const res = await fetch('emotion-images.json');
       if(res.ok){
@@ -60,12 +81,20 @@
         all = Object.values(manifest).flat().filter(Boolean);
       }
     } catch { /* file:// or offline */ }
-    if(!all.length) all = FALLBACK;
+    
+    // Se il file JSON è vuoto o fallisce, usa il Fallback filtrato preventivamente
+    if(!all.length) {
+      all = FALLBACK.filter(src => !isBlacklisted(src));
+    }
+    
     const shuffled = shuffle(all);
     const picked = [];
     const seen = new Set();
+    
     for(const src of shuffled){
       if(seen.has(src)) continue;
+      if(isBlacklisted(src)) continue; 
+
       seen.add(src);
       picked.push(src);
       if(picked.length >= limit) break;
@@ -108,10 +137,16 @@
   }
 
   async function revealSlots(slots, sources, srcIndex, delay){
+    // Filtriamo l'array FALLBACK globale rimuovendo a monte le immagini bannate
+    const cleanFallback = FALLBACK.filter(src => !isBlacklisted(src));
+
     for(let i = 0; i < slots.length; i++){
       const slot = slots[i];
-      const src = sources[srcIndex] || FALLBACK[srcIndex % FALLBACK.length];
+      
+      // Se finiscono le immagini della sorgente principale, pesca dal fallback pulito
+      let src = sources[srcIndex] || cleanFallback[srcIndex % cleanFallback.length];
       srcIndex++;
+      
       const img = document.createElement('img');
       img.alt = '';
       img.decoding = 'async';

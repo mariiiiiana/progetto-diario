@@ -380,8 +380,8 @@ const IT_WORDS = {
   manifesting:'manifesting', masters:'masters', menstruali:'menstrual', mentali:'mental',
   merda:'shit', merito:'merit', metro:'subway', michele:'Michele', mimi:'Mimi', modi:'ways', modifiche:'changes',
   motivazionale:'motivational', napoli:'Naples', nozione:'notion', numb:'numb', nuovo:'new', odo:'hate',
-  ogni:'every', omicidio:'murder', omofobia:'homophobia', open:'open', outdoor:'outdoor', papino:'daddy',
-  parascandolo:'excuse', passa:'passes', pay:'pay', polimi:'Polimi', positiva:'positive', positive:'positive',
+  ogni:'every', omofobia:'homophobia', open:'open', outdoor:'outdoor', papino:'daddy',
+  parascandolo:'excuse', passa:'passes', pay:'pay', positiva:'positive', positive:'positive',
   poste:'post office', preciclo:'pre-cycle', presa:'grip', professoressa:'professor', produttiva:'productive',
   propria:'own', pulizia:'cleaning', pura:'pure', purging:'purging', raffreddore:'cold', realizzate:'achieved',
   reciproca:'mutual', relax:'relax', relievo:'relief', ricominciare:'restart', rimozione:'removal',
@@ -2401,7 +2401,7 @@ function shouldSkipLanding(){
 const LANDING_UNITS = [
   { word: 'everything', slots: 3, wordFirst: true },
   { word: 'i', slots: 2, wordFirst: false },
-  { word: "couldn't", slots: 2, wordFirst: false },
+  { word: "can't", slots: 2, wordFirst: false },
   { word: 'say', slots: 2, wordFirst: false },
   { word: 'outloud', slots: 3, wordFirst: true }
 ];
