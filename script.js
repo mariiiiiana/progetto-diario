@@ -365,7 +365,7 @@ const IT_WORDS = {
   disfunzionalita:'dysfunction', disorganizzazione:'disorganization', disordinato:'messy', disordinamento:'disorder',
   dispiacimento:'regret', dissapatezza:'disappointment', dissapointamento:'disappointment', dissidio:'conflict',
   dissonanza:'dissonance', disuguaglianza:'inequality', dolorosi:'painful', dubbiosi:'doubtful', eccitazione:'excitement',
-  egitto:'Egypt', embarrassamento:'embarrassment', estrazione:'extraction', eta:'age', euforia:'euphoria',
+  embarrassamento:'embarrassment', estrazione:'extraction', eta:'age', euforia:'euphoria',
   esibizione:'exhibition', esistenzialismo:'existentialism', esprimersi:'expressing oneself', fantasma:'ghost',
   faticanza:'tiredness', festeggiamenti:'celebrations', festivita:'holiday', finanziaria:'financial',
   flirt:'flirting', focalizzarsi:'focusing', fonte:'source', freedom:'freedom', gaeta:'Gaeta', gatti:'cats',
@@ -564,8 +564,8 @@ const THEME_SOURCE_STOP = new Set([
   'noioso', 'motivo per scrivere la tesi', 'era ora', 'paura della morte', 'rabbia, disperazione',
   'sentimento di disperazione e frustrazione',
   'morte', 'death', 'preoccupazioni per la salute ormonale', 'paura delle lezioni con zeno',
-  'paura del futuro', 'ansia per il futuro', 'ansietà per il futuro', 'ansia per la fine del fine settimana',
-  'paura della morte', 'paura della vita', 'paura dell errore', 'paura dell\'errore',
+  'paura del futuro', 'ansietà per il futuro', 'ansia per la fine del fine settimana',
+  'paura della morte', 'paura della vita',
   'paura di cambiamento', 'paura di non essere magra', 'paura di non essere in forma',
   'paura dell obesita', 'paura dell\'obesità', 'paura della propria immagine corporea',
   'espressione di frustrazione', 'odio per gli uomini', 'stress e ansia', 'colpa e autocrítica',
@@ -1552,13 +1552,19 @@ function tickParallax(){
 }
 function blockParallaxOffset(b){
   if(parallaxInfluence < 0.001) return { dx: 0, dy: 0 };
+  
   const depth = b.parallaxDepth ?? 0.5;
   const anchor = b.parallaxAnchor || { x: b.cx, y: b.y + b.w * 0.48 };
-  const relX = (parallaxMouse.x - anchor.x) / Math.max(worldW * 0.44, 1);
-  const relY = (parallaxMouse.y - anchor.y) / Math.max(WORLD_H * 0.44, 1);
-  const scale = Math.max(mapScale, 0.001);
+  
+  // Rendi il calcolo del mouse più sensibile (es. togliendo la divisione per l'intero mondo o riducendola)
+  const relX = (parallaxMouse.x - anchor.x) / 300; // Prova con un raggio fisso in pixel
+  const relY = (parallaxMouse.y - anchor.y) / 300;
+  
   const mix = parallaxInfluence * depth;
-  const geo = PARALLAX_SCREEN * mix / scale;
+  
+  // Moltiplica per mapScale (invece di dividere) o lascialo puro se si muove già nello spazio di disegno
+  const geo = PARALLAX_SCREEN * mix * mapScale; 
+  
   return {
     dx: relX * geo,
     dy: relY * geo

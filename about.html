@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About | Architecture of Memory</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="emotion-page">
+
+    <div class="poster" style="justify-content: flex-start; align-items: center; display: flex; flex-direction: column; width: 100vw; height: 100vh; overflow-y: auto !important;">
+        
+        <div style="width: 100%; max-width: 780px; padding: clamp(60px, 8vh, 100px) clamp(20px, 4vw, 40px); box-sizing: border-box; flex-shrink: 0;">
+            
+            <header class="emotion-header" style="padding: 0; margin-bottom: clamp(24px, 4vh, 36px); background: transparent;">
+                <a href="index.html" class="emotion-site-title" style="display: inline-block; margin-bottom: 12px;">back to project</a>
+                
+                <div class="emotion-head">
+                    <div class="emotion-head-text">
+                        <h1 class="emotion-title" style="font-size: clamp(28px, 4.5vw, 44px) !important;">about the project</h1>
+                    </div>
+                </div>
+            </header>
+
+            <main class="theme-stack" style="text-transform: none; font-size: clamp(15px, 1.8vw, 17px); font-weight: 400; line-height: 1.6; flex-direction: column; gap: clamp(20px, 3vh, 32px);">
+                
+                <p style="color: var(--ink); margin: 0; font-size: clamp(16px, 2vw, 20px); line-height: 1.6; font-family: Helvetica, sans-serif;">
+                    This project is a living, interactive archive of 800+ personal annotations spanning from January 2024 to May 2026.
+                </p>
+
+                <p style="color: var(--ink); margin: 0; font-size: clamp(16px, 2vw, 20px); line-height: 1.6; font-family: Helvetica, sans-serif;">
+                    What began as a raw, unstructured stream of consciousness has been analyzed, cataloged, and transformed into a three-dimensional landscape of memory and emotion.
+                </p>
+
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                    <h2 style="font-family: Georgia, serif; font-size: clamp(20px, 2.5vw, 26px); font-weight: 400; margin: 0; letter-spacing: var(--track-serif-title); color: var(--ink-soft); text-transform: lowercase;">
+                        The Methodology: From Raw Text to Structured Data
+                    </h2>
+                    <p style="color: var(--muted); margin: 0; text-align: justify;">
+                        To bring this archive to life without compromising privacy, the entire pipeline was built and executed locally on my computer, completely free of external AIs or APIs. This technical transformation happened in two distinct, interconnected phases.
+                    </p>
+                    <p style="color: var(--muted); margin: 0; text-align: justify;">
+                        The first phase focused on Linguistic Parsing and Emotion Mapping. Every single entry started as a raw HTML file, which a custom Python script systematically converted into a readable JSON database. During this process, the script cataloged the temporal data of exact dates and timelines, extracted textual metadata like key words and recurring themes, and mapped out an emotional matrix by scoring each entry on a scale of 1 to 5 across a spectrum of 26 distinct emotions.
+                    </p>
+                    <p style="color: var(--muted); margin: 0; text-align: justify;">
+                        The second phase transitioned into Image Processing and Memory Fragmenting. Because memories are rarely crystal clear, but rather fleeting and fragmented, all attached images underwent a localized automated pipeline. A script first extracted the metadata, reading the original capture dates to map each image perfectly to its corresponding diary entry. The visuals were then cropped, pixelated, and converted to lightweight .webp formats to evoke the undefined nature of a fading memory. Finally, through dynamic sorting, these fragmented images were automatically routed into emotion-specific directories based on the entry's calculated emotional score.
+                    </p>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <h2 style="font-family: Georgia, serif; font-size: clamp(20px, 2.5vw, 26px); font-weight: 400; margin: 0; letter-spacing: var(--track-serif-title); color: var(--ink-soft); text-transform: lowercase;">
+                        The Experience: Navigating the Rooms of the Mind
+                    </h2>
+                    <p style="color: var(--muted); margin: 0; text-align: justify;">
+                        The creative heart of this website translates cold data into an intimate, interactive experience.
+                    </p>
+                    <p style="color: var(--muted); margin: 0; text-align: justify;">
+                        On the main stage, each of the 26 emotions is visualized as a three-dimensional isometric open box. The walls of these boxes are alive made of the pixelated images from the diary, constantly sliding and replacing one another. They are built as rooms for you to enter and explore. Hovering over a box pulls back the curtain, giving you a preview of the most frequently used words associated with that state of mind, as well as a glimpse into how that emotion dynamically connects to others in the archive.
+                    </p>
+                    <p style="color: var(--muted); margin: 0; text-align: justify;">
+                        Clicking a box takes you deeper into the room. Here, the core themes of that emotional era are laid out in a cryptic, interactive text landscape. The words are hidden in plain sight, revealing themselves only when you hover over them.
+                    </p>
+                </div>
+                
+            </main>
+        </div>
+
+    </div>
+
+</body>
+</html>

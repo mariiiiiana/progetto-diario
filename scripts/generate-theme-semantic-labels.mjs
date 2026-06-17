@@ -213,7 +213,7 @@ const EXPLICIT = {
   'anatomia di un fantasma': 'feeling like a ghost',
   'tasso di stanchezza': 'exhaustion level',
   'riempire lo sketchbook': 'filling my sketchbook',
-  'relazione con g': 'relationship with G',
+  'relazione': 'relationship',
   'paura di non essere in forma': 'fear of being unfit',
   'disturbo alimentare': 'eating disorder',
   'disordere alimentare': 'eating disorder',

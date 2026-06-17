@@ -305,7 +305,7 @@ const THEME_SEMANTIC_LABELS = {
   "regresso": "regression",
   "relax": "relaxing",
   "relazione": "relationship",
-  "relazione con g": "relationship with G",
+  "relazione": "relationship",
   "relazione con gli altri coinquilini": "other roommates",
   "relazione con se stessa": "relationship with yourself",
   "relazione conflittuale": "conflictual relationship",
