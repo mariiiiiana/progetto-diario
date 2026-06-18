@@ -1571,6 +1571,9 @@ function blockParallaxOffset(b){
   };
 }
 let hover = null;
+let hoverTarget = null;      // quello che il mouse vuole
+let hoverDebounceTimer = null;
+let displayAlphas = {};      // alpha corrente per ogni block, interpolato
 let lastPointer = null;
 function blockMotion(b, t){
   const i = blocks.indexOf(b);
@@ -2314,9 +2317,15 @@ function updatePointerFromClient(clientX, clientY){
   lastPointer = { x: (clientX - r.left - originX) / mapScale, y: (clientY - r.top - originY) / mapScale };
   pointerToParallaxWorld(clientX, clientY);
 }
-if(canvas && !window.__EMOTION_DETAIL_PAGE__){
+if(canvas){
   canvas.addEventListener('mousemove', e=>{
-    updatePointerFromClient(e.clientX, e.clientY);
+    updatePointerFromClient(e.clientX, e.clientY); // parallasse: immediata
+
+    // hover sulle box: debounced
+    clearTimeout(hoverDebounceTimer);
+    hoverDebounceTimer = setTimeout(() => {
+      hover = lastPointer ? hitTest(lastPointer, performance.now()) : null;
+    }, 80);
   });
   canvas.addEventListener('mouseleave', ()=>{
     lastPointer = null;
@@ -2349,6 +2358,7 @@ if(canvas && !window.__EMOTION_DETAIL_PAGE__){
     if(hit) navigateToEmotion(hit.id);
   }, {passive:false});
 }
+  
 window.addEventListener('keydown', e=>{
   if(e.key === 'Escape'){ hover=null; lastPointer=null; resetParallaxTarget(); }
 });
@@ -2395,14 +2405,14 @@ function startMainExperience(){
   initGuide();
 }
 
-// function shouldSkipLanding(){
-  //try{
-   //if(sessionStorage.getItem('diary.archive.map.entered') === '1') return true;
-  //}catch(_){}
-  //const params = new URLSearchParams(window.location.search);
-  //if(params.has('map')) return true;
-  //return window.location.hash === '#map';
-//}
+function shouldSkipLanding(){
+    try{
+   if(sessionStorage.getItem('diary.archive.map.entered') === '1') return true;
+  }catch(_){}
+  const params = new URLSearchParams(window.location.search);
+  if(params.has('map')) return true;
+  return window.location.hash === '#map';
+}
 
 const LANDING_UNITS = [
   { word: 'everything', slots: 3, wordFirst: true },
@@ -2664,15 +2674,30 @@ function initGuide(){
 }
 
 if(!window.__EMOTION_DETAIL_PAGE__){
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', initLanding);
-  } else {
-    initLanding();
-  }
+  initLanding();
 } else {
   loadDiaryData();
 }
-document.getElementById('landingEnter')?.addEventListener('click', function() {
-  dismissLanding();
-  loadDiaryData().then(() => startMainExperience());
+// click sul brand header → torna alla landing
+document.querySelector('.site-brand')?.addEventListener('click', function() {
+  const landing = document.getElementById('landing');
+  const poster = document.getElementById('poster');
+  if(!landing) return;
+
+  // resetta sessionStorage così shouldSkipLanding non la bypassa
+  try { sessionStorage.removeItem('diary.archive.map.entered'); } catch(_) {}
+
+  // mostra landing, nascondi poster
+  landing.classList.remove('is-dismissed');
+  landing.removeAttribute('aria-hidden');
+  landing.style.display = '';
+  document.body.classList.add('landing-active');
+  poster?.setAttribute('aria-hidden', 'true');
+
+  // riavvia l'animazione delle immagini
+  const cloud = document.getElementById('landingCloud');
+  if(cloud) {
+    buildLandingCollage(cloud);
+    initLandingCollage().catch(err => console.error(err));
+  }
 });

@@ -124,3 +124,6 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
   .landing-unit,.landing-word,.landing-paren,.landing-slot img,.landing-ui{transition:none;transform:none;}
   .guide-backdrop{transition:none}
 }
+.site-brand {
+  cursor: pointer;
+}
