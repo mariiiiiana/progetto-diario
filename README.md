@@ -35,17 +35,7 @@ Questo progetto è un archivio digitale interattivo e immersivo sviluppato per e
 ```
 
 ## Installazione e Avvio (Getting Started)
-Poiché il progetto utilizza JavaScript moderno con richieste asincrone di moduli e asset locali, l'apertura diretta del file index.html nel browser tramite doppio click (file:///) potrebbe essere bloccata dalle politiche di sicurezza CORS del browser.
-È necessario avviare un server locale.
-Opzione 1: Usando VS Code (Consigliato)
-Apri la cartella del progetto in Visual Studio Code.
-Installa l'estensione Live Server (se non l'hai già).
-Clicca sul tasto "Go Live" in basso a destra nella barra di stato di VS Code.
-Il progetto si aprirà automaticamente su http://127.0.0.1:5500.
-Opzione 2: Usando il Terminale (Python)
-Se hai Python installato sul computer, apri il terminale, posizionati nella cartella del progetto e digita:
-python -m http.server 8000
-Dopodiché apri il browser e vai all'indirizzo: http://localhost:8000
+Poiché il progetto utilizza JavaScript moderno con richieste asincrone di moduli e asset locali, è necessario avviare un server locale.
 
 ## Note di Design e Tipografia
 Il design unisce l'estetica di un archivio cartaceo analogico ad elementi digitali minimalisti.

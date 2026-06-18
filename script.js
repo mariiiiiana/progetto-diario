@@ -2395,14 +2395,14 @@ function startMainExperience(){
   initGuide();
 }
 
-function shouldSkipLanding(){
-  try{
-    if(sessionStorage.getItem('diary.archive.map.entered') === '1') return true;
-  }catch(_){}
-  const params = new URLSearchParams(window.location.search);
-  if(params.has('map')) return true;
-  return window.location.hash === '#map';
-}
+// function shouldSkipLanding(){
+  //try{
+   //if(sessionStorage.getItem('diary.archive.map.entered') === '1') return true;
+  //}catch(_){}
+  //const params = new URLSearchParams(window.location.search);
+  //if(params.has('map')) return true;
+  //return window.location.hash === '#map';
+//}
 
 const LANDING_UNITS = [
   { word: 'everything', slots: 3, wordFirst: true },
@@ -2618,7 +2618,9 @@ function initLanding(){
     if(typeof window.bootLandingPhotos === 'function') void window.bootLandingPhotos();
     else void initLandingCollage().catch(err => console.error('Landing collage error:', err));
   });
-  enter.addEventListener('click', () => { bootMapExperience(); });
+  document.querySelectorAll('#landingEnter, .landing-enter').forEach(btn => {
+    btn.addEventListener('click', () => bootMapExperience());
+  });
 }
 
 function initGuide(){
@@ -2662,7 +2664,15 @@ function initGuide(){
 }
 
 if(!window.__EMOTION_DETAIL_PAGE__){
-  initLanding();
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initLanding);
+  } else {
+    initLanding();
+  }
 } else {
   loadDiaryData();
 }
+document.getElementById('landingEnter')?.addEventListener('click', function() {
+  dismissLanding();
+  loadDiaryData().then(() => startMainExperience());
+});
