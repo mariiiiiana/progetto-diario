@@ -1,4 +1,5 @@
-# things i couldn't say out loud
+# everything i can't say out loud
+![demo](landing.gif)
 ### Architecture of Memory & Emotion (Jan 2024 – May 2026)
 
 Questo progetto è un archivio digitale interattivo e immersivo sviluppato per esplorare, navigare e visualizzare una collezione di oltre 800 annotazioni personali. Trasforma un flusso disordinato di coscienza e frammenti di ricordi in un panorama tridimensionale navigabile, analizzando il testo in locale e mappando i metadati delle immagini in base alle emozioni.
