@@ -75,7 +75,7 @@
     let all = [];
     
     try {
-      const res = await fetch('emotion-images.json');
+      const res = await fetch('data/emotion-images.json');
       if(res.ok){
         const manifest = await res.json();
         all = Object.values(manifest).flat().filter(Boolean);

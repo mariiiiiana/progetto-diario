@@ -19,7 +19,7 @@ function loadDiaryData() {
   if(diaryLoadPromise) return diaryLoadPromise;
   diaryLoadPromise = (async () => {
     try {
-      const response = await fetch("dati_diario_landing.json");
+      const response = await fetch("data/dati_diario_landing.json");
 
       if (!response.ok) {
         throw new Error("Error loading JSON file");
@@ -53,7 +53,7 @@ const BLOCK_RELATED_LIFT = 1.8;
 const emotionStrips = {};
 let emotionImagesReady = false;
 let emotionManifest = null;
-const emotionManifestPromise = fetch('emotion-images.json')
+const emotionManifestPromise = fetch('data/emotion-images.json')
   .then(res => res.ok ? res.json() : null)
   .then(manifest => {
     if(manifest) emotionManifest = manifest;
