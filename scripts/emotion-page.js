@@ -51,7 +51,7 @@ async function initEmotionPage(){
   const entryCount = entriesForEmotion(diaryData, emotionId).length;
   const themes = themesForEmotionPage(emotionId);
 
-  document.title = `${label} — things i couldn't say out loud`;
+  document.title = `${label} — everything i couldn't say aloud`;
   titleEl.textContent = label;
   titleEl.classList.toggle('has-descenders', typeof hasTextDescenders === 'function' && hasTextDescenders(label));
   countEl.textContent = entryCount;

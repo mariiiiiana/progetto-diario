@@ -1,4 +1,4 @@
-# everything i can't say out loud
+# everything i can't say aloud
 ![demo](landing.gif)
 ### Architecture of Memory & Emotion (Jan 2024 – May 2026)
 

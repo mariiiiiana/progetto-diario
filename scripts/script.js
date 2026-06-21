@@ -2406,8 +2406,8 @@ function startMainExperience(){
 }
 
 function shouldSkipLanding(){
-    try{
-   if(sessionStorage.getItem('diary.archive.map.entered') === '1') return true;
+  try{
+    if(sessionStorage.getItem('diary.archive.map.entered') === '1') return true;
   }catch(_){}
   const params = new URLSearchParams(window.location.search);
   if(params.has('map')) return true;
@@ -2419,7 +2419,7 @@ const LANDING_UNITS = [
   { word: 'i', slots: 2, wordFirst: false },
   { word: "can't", slots: 2, wordFirst: false },
   { word: 'say', slots: 2, wordFirst: false },
-  { word: 'outloud', slots: 3, wordFirst: true }
+  { word: 'aloud', slots: 3, wordFirst: true }
 ];
 const LANDING_FALLBACK_IMAGES = [
   'box_emozioni/Amore/2024-02-17_40CF126E-0917-4553-928C-21FB74A00438.webp',
@@ -2599,6 +2599,11 @@ function dismissLanding(){
 }
 
 async function bootMapExperience(){
+  // rimuovi ?landing dall'URL senza ricaricare la pagina
+  if(new URLSearchParams(window.location.search).has('landing')){
+    const clean = window.location.pathname;
+    history.replaceState(null, '', clean);
+  }
   dismissLanding();
   await loadDiaryData();
   startMainExperience();
@@ -2678,26 +2683,36 @@ if(!window.__EMOTION_DETAIL_PAGE__){
 } else {
   loadDiaryData();
 }
-// click sul brand header → torna alla landing
 document.querySelector('.site-brand')?.addEventListener('click', function() {
+  try { sessionStorage.removeItem('diary.archive.map.entered'); } catch(_) {}
+
   const landing = document.getElementById('landing');
   const poster = document.getElementById('poster');
   if(!landing) return;
 
-  // resetta sessionStorage così shouldSkipLanding non la bypassa
-  try { sessionStorage.removeItem('diary.archive.map.entered'); } catch(_) {}
-
-  // mostra landing, nascondi poster
   landing.classList.remove('is-dismissed');
   landing.removeAttribute('aria-hidden');
   landing.style.display = '';
   document.body.classList.add('landing-active');
   poster?.setAttribute('aria-hidden', 'true');
 
-  // riavvia l'animazione delle immagini
+  document.querySelectorAll('#landingEnter, .landing-enter').forEach(btn => {
+    btn.replaceWith(btn.cloneNode(true));
+  });
+  document.querySelectorAll('#landingEnter, .landing-enter').forEach(btn => {
+    btn.addEventListener('click', () => bootMapExperience());
+  });
+
   const cloud = document.getElementById('landingCloud');
   if(cloud) {
     buildLandingCollage(cloud);
-    initLandingCollage().catch(err => console.error(err));
+    window.__resetLandingBoot?.();
+    setTimeout(() => {
+      if(typeof window.bootLandingPhotos === 'function'){
+        void window.bootLandingPhotos();
+      } else {
+        void initLandingCollage().catch(err => console.error(err));
+      }
+    }, 50);
   }
 });

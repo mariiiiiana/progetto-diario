@@ -161,6 +161,7 @@
   }
 
   let booting = false;
+window.__resetLandingBoot = () => { booting = false; };
 
   async function bootLandingPhotos(){
     if(booting) return;

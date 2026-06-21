@@ -397,7 +397,6 @@ const THEME_SEMANTIC_LABELS = {
   "tesi finale": "final thesis",
   "trasferta": "trip",
   "trattamento": "treatment",
-  "trauma cranico": "head trauma",
   "tregua": "truce",
   "tristezza/depressione": "feeling low",
   "umorismo": "humor",
