@@ -2325,7 +2325,7 @@ if(canvas){
     clearTimeout(hoverDebounceTimer);
     hoverDebounceTimer = setTimeout(() => {
       hover = lastPointer ? hitTest(lastPointer, performance.now()) : null;
-    }, 80);
+    }, 160);
   });
   canvas.addEventListener('mouseleave', ()=>{
     lastPointer = null;

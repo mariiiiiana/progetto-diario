@@ -137,23 +137,28 @@
   }
 
   async function revealSlots(slots, sources, srcIndex, delay){
-    // Filtriamo l'array FALLBACK globale rimuovendo a monte le immagini bannate
     const cleanFallback = FALLBACK.filter(src => !isBlacklisted(src));
 
     for(let i = 0; i < slots.length; i++){
       const slot = slots[i];
-      
-      // Se finiscono le immagini della sorgente principale, pesca dal fallback pulito
-      let src = sources[srcIndex] || cleanFallback[srcIndex % cleanFallback.length];
+
+      // usa sources finché ci sono, poi pesca dal fallback con indice relativo
+      let src;
+      if(srcIndex < sources.length){
+        src = sources[srcIndex];
+      } else {
+        const fallbackIndex = (srcIndex - sources.length) % cleanFallback.length;
+        src = cleanFallback[fallbackIndex];
+      }
       srcIndex++;
-      
+
       const img = document.createElement('img');
       img.alt = '';
       img.decoding = 'async';
       img.loading = 'eager';
       img.src = src;
       slot.appendChild(img);
-      await waitForImage(img, 12000);
+      await waitForImage(img, 3000);
       slot.classList.add('is-visible');
       if(delay && i < slots.length - 1) await pause(delay);
     }
