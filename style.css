@@ -127,43 +127,40 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
 .site-brand {
   cursor: pointer;
 }
-/* --- CORREZIONI DEFINITIVE SOLO PER VERSIONE MOBILE --- */
+/* --- CONFIGURAZIONE CROSS-BROWSER PER VERSIONE MOBILE (SAFARI + CHROME) --- */
 @media (max-width: 700px) {
 
-  /* 1. SOLUZIONE DEFINITIVA CANVAS NERO (Risolve il bug di rendering hardware e conflitti) */
+  /* 1. COMPATIBILITÀ CANVAS (Risolve il blocco nero sia su Chrome che su Safari) */
   canvas {
     touch-action: none !important;
     -webkit-tap-highlight-color: transparent !important;
+    /* Rimuove i glitch hardware su Chrome lasciando fluido lo sfondo */
+    isolation: isolate !important;
+    mix-blend-mode: normal !important;
     backface-visibility: hidden !important;
     -webkit-backface-visibility: hidden !important;
-    transform: translate3d(0,0,0) !important;
-    -webkit-transform: translate3d(0,0,0) !important;
-    will-change: transform !important;
   }
 
-  /* Impedisce l'overflow globale e i glitch visivi durante il trascinamento */
   .stage {
-    overflow: hidden !important;
     position: relative !important;
-    -webkit-webkit-clip-path: inset(0 0 0 0) !important;
-    clip-path: inset(0 0 0 0) !important;
+    overflow: hidden !important;
+    z-index: 5 !important;
   }
 
   /* 2. PREVIEW DELLE BOX (Alzate, centrate e NESSUN overflow dallo schermo) */
   .explode-layer {
-    /* Sposta la box sensibilmente più in alto rispetto al punto di tocco */
-    transform: translate(-50%, -45%) !important; 
-    will-change: transform;
-    pointer-events: none !important;
+    /* Alza la box per far sì che il testo rimanga visibile sopra il dito */
+    transform: translate(-50%, -40%) !important; 
+    z-index: 9999 !important;
   }
   
   .ex-burst {
-    width: 84vw !important; 
+    width: 86vw !important; 
     max-width: 290px !important;
-    max-height: 45vh !important; 
-    gap: 10px !important;
+    max-height: 48vh !important; 
+    gap: 12px !important;
     padding: 0 4px 4px 0 !important;
-    overflow: hidden !important; /* Blocca tassativamente l'overflow della box */
+    overflow: hidden !important; /* Blocca tassativamente qualsiasi overflow esterno */
     box-sizing: border-box !important;
   }
 
@@ -171,21 +168,20 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
     gap: 6px !important;
     width: 100% !important;
     max-width: 100% !important;
-    overflow: hidden !important; /* Blocca l'overflow dei testi interni */
+    overflow: hidden !important; /* Blocca l'overflow interno */
   }
 
   .ex-word {
-    /* Forza il testo a non uscire MAI dallo schermo, tagliando con i tre puntini se troppo lungo */
     font-size: calc(var(--ex-title, 38px) * 0.40) !important;
     width: 100% !important;
     max-width: 100% !important;
     white-space: nowrap !important;
     overflow: hidden !important;
-    text-overflow: ellipsis !important; /* Visualizza ... in caso di parole lunghissime */
+    text-overflow: ellipsis !important; /* Taglia le parole con ... se toccano il bordo */
     display: block !important;
   }
 
-  /* Ridimensionamento proporzionale di sicurezza per i singoli livelli di testo interni */
+  /* Scala le scritte interne alla preview */
   .ex-word--0 { font-size: calc(var(--ex-title, 38px) * 0.44) !important; }
   .ex-word--1 { font-size: calc(var(--ex-title, 38px) * 0.38) !important; }
   .ex-word--2 { font-size: calc(var(--ex-title, 38px) * 0.34) !important; }
@@ -193,9 +189,12 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
   .ex-word--4 { font-size: calc(var(--ex-title, 38px) * 0.26) !important; }
 
 
-  /* 3. LANDING (Divisione forzata millimetrica su 3 righe come desktop) */
+  /* 3. LANDING (Divisione universale su 3 righe stabile sia su Safari che su Chrome) */
   .landing-cloud {
-    padding: 8px !important;
+    padding: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   .landing-phrase {
@@ -203,41 +202,48 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
     flex-wrap: wrap !important;
     justify-content: center !important;
     align-items: center !important;
-    gap: 12px 14px !important;
-    max-width: 100% !important;
-    width: auto !important;
+    gap: 14px 12px !important; 
+    width: 100% !important;
+    max-width: 320px !important; /* Stringe il raggio d'azione per allineare i blocchi */
   }
 
   .landing-unit {
     display: inline-flex !important;
-    flex-wrap: nowrap !important;
     align-items: center !important;
     gap: 4px !important;
+    /* Rimuove i blocchi di margine instabili */
+    margin: 0 !important; 
   }
   
-  /* Interruzione dopo la seconda box (everything i) */
-  .landing-phrase .landing-unit:nth-of-type(2) {
-    margin-right: 100% !important; /* Forza il rigo successivo */
+  /* Sistema alternativo e solidissimo: inserisce un'interruzione strutturale dopo i blocchi richiesti */
+  /* Riga 1: (everything) (i) */
+  .landing-phrase .landing-unit:nth-child(2)::after {
+    content: "" !important;
+    flex-basis: 100% !important;
+    width: 100% !important;
+    height: 0 !important;
+  }
+  /* Riga 2: (can't) (say) */
+  .landing-phrase .landing-unit:nth-child(4)::after {
+    content: "" !important;
+    flex-basis: 100% !important;
+    width: 100% !important;
+    height: 0 !important;
   }
 
-  /* Interruzione dopo la quarta box (can't say) */
-  .landing-phrase .landing-unit:nth-of-type(4) {
-    margin-right: 100% !important; /* Forza il rigo successivo */
-  }
-
-  /* Dimensioni proporzionate per far stare comodamente le coppie di parole su ogni riga */
+  /* Dimensioni proporzionate e calibrate (ottimizzate per evitare gigantismi e sovrapposizioni) */
   .landing-word {
-    font-size: clamp(22px, 5.8vw, 32px) !important; 
+    font-size: 26px !important; 
     line-height: 1.1 !important;
   }
 
   .landing-paren {
-    font-size: clamp(26px, 6.2vw, 36px) !important;
+    font-size: 30px !important;
     line-height: 0.9 !important;
   }
 
   .landing-slot {
-    width: clamp(32px, 6.5vw, 42px) !important;
-    height: clamp(22px, 4.8vw, 28px) !important;
+    width: 36px !important;
+    height: 24px !important;
   }
 }
