@@ -126,124 +126,122 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
 }
 .site-brand {
   cursor: pointer;
-}
-/* --- CONFIGURAZIONE CROSS-BROWSER PER VERSIONE MOBILE (SAFARI + CHROME) --- */
+}/* --- FIX DEFINITIVO E CORRETTO PER MOBILE (SAFARI + CHROME) --- */
 @media (max-width: 700px) {
 
-  /* 1. COMPATIBILITÀ CANVAS (Risolve il blocco nero sia su Chrome che su Safari) */
+  /* 1. RIPRISTINO E STABILIZZAZIONE CANVAS (Niente più schermate nere) */
   canvas {
     touch-action: none !important;
     -webkit-tap-highlight-color: transparent !important;
-    /* Rimuove i glitch hardware su Chrome lasciando fluido lo sfondo */
-    isolation: isolate !important;
-    mix-blend-mode: normal !important;
-    backface-visibility: hidden !important;
-    -webkit-backface-visibility: hidden !important;
+    position: absolute !important;
+    inset: 0 !important;
   }
-
   .stage {
     position: relative !important;
     overflow: hidden !important;
-    z-index: 5 !important;
   }
 
-  /* 2. PREVIEW DELLE BOX (Alzate, centrate e NESSUN overflow dallo schermo) */
+  /* 2. PREVIEW DELLE BOX (Alzate, centrate, distanziate e NESSUNA fuoriuscita) */
   .explode-layer {
-    /* Alza la box per far sì che il testo rimanga visibile sopra il dito */
-    transform: translate(-50%, -40%) !important; 
-    z-index: 9999 !important;
+    /* Alza la box sopra il punto di tocco del dito */
+    transform: translate(-50%, -45%) !important; 
+    z-index: 210 !important;
   }
   
   .ex-burst {
-    width: 86vw !important; 
+    width: 85vw !important; 
     max-width: 290px !important;
-    max-height: 48vh !important; 
-    gap: 12px !important;
-    padding: 0 4px 4px 0 !important;
-    overflow: hidden !important; /* Blocca tassativamente qualsiasi overflow esterno */
+    max-height: 45vh !important; 
+    gap: 16px !important; /* Distribuisce meglio le box internamente (non addossate) */
+    padding: 10px !important;
+    overflow: hidden !important;
     box-sizing: border-box !important;
+    background: var(--paper) !important;
+    border: 1px solid var(--hairline) !important;
   }
 
   .ex-words {
-    gap: 6px !important;
+    gap: 10px !important; /* Distanzia meglio le righe di parole */
     width: 100% !important;
     max-width: 100% !important;
-    overflow: hidden !important; /* Blocca l'overflow interno */
+    overflow: hidden !important;
+    contain: paint !important; /* Impedisce tassativamente l'overflow visivo */
   }
 
   .ex-word {
-    font-size: calc(var(--ex-title, 38px) * 0.40) !important;
+    font-size: 16px !important; /* Dimensione fissa leggibile per mobile */
     width: 100% !important;
     max-width: 100% !important;
     white-space: nowrap !important;
     overflow: hidden !important;
-    text-overflow: ellipsis !important; /* Taglia le parole con ... se toccano il bordo */
+    text-overflow: ellipsis !important; /* Se la parola è troppo lunga mette i tre puntini (...) */
     display: block !important;
   }
 
-  /* Scala le scritte interne alla preview */
-  .ex-word--0 { font-size: calc(var(--ex-title, 38px) * 0.44) !important; }
-  .ex-word--1 { font-size: calc(var(--ex-title, 38px) * 0.38) !important; }
-  .ex-word--2 { font-size: calc(var(--ex-title, 38px) * 0.34) !important; }
-  .ex-word--3 { font-size: calc(var(--ex-title, 38px) * 0.30) !important; }
-  .ex-word--4 { font-size: calc(var(--ex-title, 38px) * 0.26) !important; }
+  /* Forziamo la microscalatura interna di sicurezza */
+  .ex-word--0 { font-size: 18px !important; }
+  .ex-word--1 { font-size: 16px !important; }
+  .ex-word--2 { font-size: 14px !important; }
+  .ex-word--3 { font-size: 13px !important; }
+  .ex-word--4 { font-size: 12px !important; }
 
 
-  /* 3. LANDING (Divisione universale su 3 righe stabile sia su Safari che su Chrome) */
+  /* 3. LANDING (Testo e foto grandi, incolonnati esattamente in 3 righe) */
   .landing-cloud {
-    padding: 10px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    padding: 15px !important;
   }
 
   .landing-phrase {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    justify-content: center !important;
-    align-items: center !important;
-    gap: 14px 12px !important; 
+    display: block !important; /* Cambiamo da flex a block per un controllo totale dell'andare a capo */
     width: 100% !important;
-    max-width: 320px !important; /* Stringe il raggio d'azione per allineare i blocchi */
+    max-width: 310px !important;
+    margin: 0 auto !important;
+    text-align: center !important;
   }
 
   .landing-unit {
     display: inline-flex !important;
+    vertical-align: middle !important;
     align-items: center !important;
-    gap: 4px !important;
-    /* Rimuove i blocchi di margine instabili */
-    margin: 0 !important; 
+    gap: 6px !important;
+    margin: 8px 4px !important; /* Spazio e ottima distribuzione tra le box */
   }
   
-  /* Sistema alternativo e solidissimo: inserisce un'interruzione strutturale dopo i blocchi richiesti */
-  /* Riga 1: (everything) (i) */
-  .landing-phrase .landing-unit:nth-child(2)::after {
-    content: "" !important;
-    flex-basis: 100% !important;
-    width: 100% !important;
-    height: 0 !important;
+  /* RIGA 1: (everything) (i) -> Forza l'andare a capo dopo il secondo blocco */
+  .landing-phrase .landing-unit:nth-child(2) {
+    display: inline-flex !important;
   }
-  /* Riga 2: (can't) (say) */
-  .landing-phrase .landing-unit:nth-child(4)::after {
-    content: "" !important;
-    flex-basis: 100% !important;
+  .landing-phrase .landing-unit:nth-child(2)::after {
+    content: "\A" !important;
+    white-space: pre !important;
+    display: block !important;
     width: 100% !important;
-    height: 0 !important;
   }
 
-  /* Dimensioni proporzionate e calibrate (ottimizzate per evitare gigantismi e sovrapposizioni) */
+  /* RIGA 2: (can't) (say) -> Forza l'andare a capo dopo il quarto bligo */
+  .landing-phrase .landing-unit:nth-child(4) {
+    display: inline-flex !important;
+  }
+  .landing-phrase .landing-unit:nth-child(4)::after {
+    content: "\A" !important;
+    white-space: pre !important;
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* Grandezza maggiorata e bilanciata di foto e testi della landing */
   .landing-word {
-    font-size: 26px !important; 
-    line-height: 1.1 !important;
+    font-size: 28px !important; 
+    line-height: 1 !important;
   }
 
   .landing-paren {
-    font-size: 30px !important;
-    line-height: 0.9 !important;
+    font-size: 32px !important;
+    line-height: 1 !important;
   }
 
   .landing-slot {
-    width: 36px !important;
-    height: 24px !important;
+    width: 42px !important;
+    height: 28px !important;
   }
 }
