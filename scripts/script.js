@@ -1575,7 +1575,8 @@ function blockParallaxOffset(b){
   };
 }
 let hover = null;
-let hoverTarget = null;      // quello che il mouse vuole
+let hoverTarget = null;
+let touchHoverLocked = false;      // quello che il mouse vuole
 let hoverDebounceTimer = null;
 let displayAlphas = {};      // alpha corrente per ogni block, interpolato
 let lastPointer = null;
@@ -1947,7 +1948,7 @@ function draw(t){
   ctx.save();
   ctx.translate(originX, originY);
   ctx.scale(mapScale, mapScale);
-  if(lastPointer) hover = hitTest(lastPointer,t);
+  if(lastPointer && !touchHoverLocked) hover = hitTest(lastPointer,t);
   const activeBlock = hover;
   const relatedIds = activeBlock
     ? (patternData[activeBlock.id]?.related || []).map(r => typeof r === 'string' ? r : r.id)
@@ -2363,16 +2364,22 @@ if(canvas){
     const now = Date.now();
     if(hit){
       if(hit === lastTapBlock && now - lastTapTime < 400){
-        navigateToEmotion(hit.id);
+        // doppio tap: naviga
+        touchHoverLocked = false;
         lastTapBlock = null;
         lastTapTime = 0;
+        navigateToEmotion(hit.id);
       } else {
+        // singolo tap: mostra preview, blocca draw() dal resettare hover
         hover = hit;
+        touchHoverLocked = true;
         lastTapBlock = hit;
         lastTapTime = now;
       }
     } else {
+      // tap su vuoto: resetta
       hover = null;
+      touchHoverLocked = false;
       lastPointer = null;
       lastTapBlock = null;
       lastTapTime = 0;
