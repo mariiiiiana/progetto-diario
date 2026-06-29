@@ -1474,11 +1474,15 @@ function blockWorldBounds(cx, y, w, h, pad = 10){
 }
 function blockContainmentBounds(){
   const pad = 20;
+  const isMobilePortrait = viewW < 600 && viewH > viewW;
+  const effectiveBottom = isMobilePortrait
+    ? Math.round(WORLD_H * Math.min(0.92, (viewH / viewW) * (worldW / WORLD_H) * 0.88))
+    : WORLD_H - pad;
   return {
     left: pad,
     right: worldW - pad,
     top: pad,
-    bottom: WORLD_H - pad
+    bottom: effectiveBottom
   };
 }
 function clampBlockPosition(cx, y, w, h){
@@ -2339,7 +2343,6 @@ if(canvas){
   }, {passive:false});
   canvas.addEventListener('touchend', e=>{
     if(e.touches.length) return;
-    lastPointer = null;
     resetParallaxTarget();
   });
   canvas.addEventListener('click', e=>{
@@ -2349,13 +2352,31 @@ if(canvas){
     const hit = hitTest(pt, performance.now());
     if(hit) navigateToEmotion(hit.id);
   });
+  let lastTapBlock = null;
+  let lastTapTime = 0;
   canvas.addEventListener('touchstart', e=>{
     if(!e.touches.length) return;
     e.preventDefault();
     const t0=e.touches[0];
     updatePointerFromClient(t0.clientX, t0.clientY);
     const hit = hitTest(lastPointer, performance.now());
-    if(hit) navigateToEmotion(hit.id);
+    const now = Date.now();
+    if(hit){
+      if(hit === lastTapBlock && now - lastTapTime < 400){
+        navigateToEmotion(hit.id);
+        lastTapBlock = null;
+        lastTapTime = 0;
+      } else {
+        hover = hit;
+        lastTapBlock = hit;
+        lastTapTime = now;
+      }
+    } else {
+      hover = null;
+      lastPointer = null;
+      lastTapBlock = null;
+      lastTapTime = 0;
+    }
   }, {passive:false});
 }
   
@@ -2379,13 +2400,9 @@ function resizeCanvas(){
   }
   syncWorldWidth();
   explodeLayout.key = null;
-  const isMobilePortrait = viewW < 600 && viewH > viewW;
-  const effectiveWorldH = isMobilePortrait
-    ? Math.round(WORLD_H * Math.min(1, (viewW / viewH) / (worldW / WORLD_H) * 1.12))
-    : WORLD_H;
-  mapScale = Math.min(viewW / worldW, viewH / effectiveWorldH);
+  mapScale = Math.min(viewW / worldW, viewH / WORLD_H);
   originX = (viewW - worldW * mapScale) / 2;
-  originY = (viewH - effectiveWorldH * mapScale) / 2;
+  originY = (viewH - WORLD_H * mapScale) / 2;
   rebuildBaseBlocks();
   const rest = parallaxRestPoint();
   parallaxMouse.x = rest.x;
