@@ -127,33 +127,80 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
 .site-brand {
   cursor: pointer;
 }
-/* --- MODIFICHE SPECIFICHE PER MOBILE --- */
+/* --- CORREZIONI FINALI SOLO PER VERSIONE MOBILE --- */
 @media (max-width: 700px) {
-  /* 1. Alza e centra le box nello schermo + distanziamento (non addossate) */
-  .explode-layer {
-    transform: translate(-50%, -20%) !important; /* Centra e sposta leggermente verso l'alto */
-  }
-  .ex-burst {
-    width: min(340px, 92vw) !important;
-    max-height: min(420px, 65vh) !important; /* Più spazio in altezza per non far uscire il testo */
-    gap: 20px !important; /* Aumenta lo spazio verticale interno alla box */
-  }
-  .ex-words {
-    gap: 14px !important; /* Distribuisce meglio e distanzia i testi interni alla box */
+
+  /* 1. RISOLUZIONE CANVAS NERO (Blocca i conflitti di touch su mobile) */
+  canvas {
+    touch-action: none !important;
+    -webkit-tap-highlight-color: transparent !important;
   }
 
-  /* 2. Ingrandimento foto e testo della landing */
-  .landing-word {
-    font-size: clamp(32px, 7.5vw, 110px) !important; /* Ingrandisce i testi principali */
+  /* 2. PREVIEW DELLE BOX (Alza, centra e impedisce alle parole di uscire dallo schermo) */
+  .explode-layer {
+    /* Sposta la box sensibilmente più in alto rispetto al tocco così non esce sotto */
+    transform: translate(-50%, -35%) !important; 
   }
-  .landing-paren {
-    font-size: clamp(36px, 8.2vw, 120px) !important; /* Ingrandisce le parentesi */
+  .ex-burst {
+    /* Riduce la larghezza massima per non farla sbordare dai lati del telefono */
+    width: 88vw !important; 
+    max-width: 320px !important;
+    /* Evita che l'altezza collassi o si allunghi troppo */
+    max-height: 55vh !important; 
+    gap: 12px !important;
+    padding: 0 4px 4px 0 !important;
   }
-  .landing-slot {
-    width: clamp(48px, 6.8vw, 96px) !important; /* Ingrandisce la larghezza della foto */
-    height: clamp(34px, 4.8vw, 76px) !important; /* Ingrandisce l'altezza della foto */
+  .ex-words {
+    gap: 8px !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+  .ex-word {
+    /* Forza il testo a rimpicciolirsi in proporzione allo schermo e ad andare a capo 
+       o mostrare i puntini di sospensione se la parola è troppo lunga */
+    font-size: calc(var(--ex-title, 38px) * 0.45) !important;
+    max-width: 100% !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  /* Scala correttamente anche i passaggi di dimensione interni alla box */
+  .ex-word--0 { font-size: calc(var(--ex-title, 38px) * 0.50) !important; }
+  .ex-word--1 { font-size: calc(var(--ex-title, 38px) * 0.44) !important; }
+  .ex-word--2 { font-size: calc(var(--ex-title, 38px) * 0.38) !important; }
+  .ex-word--3 { font-size: calc(var(--ex-title, 38px) * 0.34) !important; }
+  .ex-word--4 { font-size: calc(var(--ex-title, 38px) * 0.30) !important; }
+
+
+  /* 3. LANDING (Testo e foto bilanciati per andare su tre righe come su desktop) */
+  .landing-cloud {
+    padding: 10px !important;
   }
   .landing-phrase {
-    gap: 20px !important; /* Distribuisce meglio gli elementi della landing evitando sovrapposizioni */
+    /* Forza il contenitore a disporre gli elementi in righe compatte */
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 12px 16px !important; /* Spazio controllato tra righe e colonne */
+    max-width: 290px !important; /* Costringe il testo a spezzarsi esattamente in 3 righe */
+    margin: 0 auto !important;
+  }
+  .landing-unit {
+    display: inline-flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+  /* Ridimensionamento perfetto per evitare che una singola parola occupi tutto il rigo */
+  .landing-word {
+    font-size: clamp(26px, 6.5vw, 36px) !important; 
+  }
+  .landing-paren {
+    font-size: clamp(30px, 7vw, 42px) !important;
+  }
+  .landing-slot {
+    width: clamp(38px, 8vw, 48px) !important;
+    height: clamp(26px, 5.5vw, 34px) !important;
   }
 }
