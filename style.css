@@ -127,3 +127,33 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
 .site-brand {
   cursor: pointer;
 }
+/* --- MODIFICHE SPECIFICHE PER MOBILE --- */
+@media (max-width: 700px) {
+  /* 1. Alza e centra le box nello schermo + distanziamento (non addossate) */
+  .explode-layer {
+    transform: translate(-50%, -20%) !important; /* Centra e sposta leggermente verso l'alto */
+  }
+  .ex-burst {
+    width: min(340px, 92vw) !important;
+    max-height: min(420px, 65vh) !important; /* Più spazio in altezza per non far uscire il testo */
+    gap: 20px !important; /* Aumenta lo spazio verticale interno alla box */
+  }
+  .ex-words {
+    gap: 14px !important; /* Distribuisce meglio e distanzia i testi interni alla box */
+  }
+
+  /* 2. Ingrandimento foto e testo della landing */
+  .landing-word {
+    font-size: clamp(32px, 7.5vw, 110px) !important; /* Ingrandisce i testi principali */
+  }
+  .landing-paren {
+    font-size: clamp(36px, 8.2vw, 120px) !important; /* Ingrandisce le parentesi */
+  }
+  .landing-slot {
+    width: clamp(48px, 6.8vw, 96px) !important; /* Ingrandisce la larghezza della foto */
+    height: clamp(34px, 4.8vw, 76px) !important; /* Ingrandisce l'altezza della foto */
+  }
+  .landing-phrase {
+    gap: 20px !important; /* Distribuisce meglio gli elementi della landing evitando sovrapposizioni */
+  }
+}
