@@ -2379,9 +2379,13 @@ function resizeCanvas(){
   }
   syncWorldWidth();
   explodeLayout.key = null;
-  mapScale = Math.min(viewW / worldW, viewH / WORLD_H);
+  const isMobilePortrait = viewW < 600 && viewH > viewW;
+  const effectiveWorldH = isMobilePortrait
+    ? Math.round(WORLD_H * Math.min(1, (viewW / viewH) / (worldW / WORLD_H) * 1.12))
+    : WORLD_H;
+  mapScale = Math.min(viewW / worldW, viewH / effectiveWorldH);
   originX = (viewW - worldW * mapScale) / 2;
-  originY = (viewH - WORLD_H * mapScale) / 2;
+  originY = (viewH - effectiveWorldH * mapScale) / 2;
   rebuildBaseBlocks();
   const rest = parallaxRestPoint();
   parallaxMouse.x = rest.x;
