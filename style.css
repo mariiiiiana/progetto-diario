@@ -127,66 +127,87 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
 .site-brand {
   cursor: pointer;
 }
-/* --- CORREZIONI FINALI SOLO PER VERSIONE MOBILE --- */
+/* --- CORREZIONI DEFINITIVE SOLO PER VERSIONE MOBILE --- */
 @media (max-width: 700px) {
 
-  /* 1. RISOLUZIONE CANVAS NERO (Blocca i conflitti di tocco) */
+  /* 1. SOLUZIONE DEFINITIVA CANVAS NERO (Risolve il bug di rendering hardware e conflitti) */
   canvas {
     touch-action: none !important;
     -webkit-tap-highlight-color: transparent !important;
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+    transform: translate3d(0,0,0) !important;
+    -webkit-transform: translate3d(0,0,0) !important;
+    will-change: transform !important;
   }
 
-  /* 2. PREVIEW DELLE BOX (Centrate, alzate e NESSUN overflow dallo schermo) */
+  /* Impedisce l'overflow globale e i glitch visivi durante il trascinamento */
+  .stage {
+    overflow: hidden !important;
+    position: relative !important;
+    -webkit-webkit-clip-path: inset(0 0 0 0) !important;
+    clip-path: inset(0 0 0 0) !important;
+  }
+
+  /* 2. PREVIEW DELLE BOX (Alzate, centrate e NESSUN overflow dallo schermo) */
   .explode-layer {
-    /* Alza visibilmente la struttura rispetto al punto di tocco */
-    transform: translate(-50%, -35%) !important; 
+    /* Sposta la box sensibilmente più in alto rispetto al punto di tocco */
+    transform: translate(-50%, -45%) !important; 
+    will-change: transform;
+    pointer-events: none !important;
   }
+  
   .ex-burst {
-    /* Dimensione controllata e compatta per non toccare i bordi del telefono */
-    width: 86vw !important; 
-    max-width: 300px !important;
-    max-height: 50vh !important; 
-    gap: 12px !important;
+    width: 84vw !important; 
+    max-width: 290px !important;
+    max-height: 45vh !important; 
+    gap: 10px !important;
     padding: 0 4px 4px 0 !important;
-    overflow: hidden !important; /* Impedisce alle box stesse di fare overflow */
+    overflow: hidden !important; /* Blocca tassativamente l'overflow della box */
+    box-sizing: border-box !important;
   }
+
   .ex-words {
-    gap: 8px !important;
+    gap: 6px !important;
     width: 100% !important;
     max-width: 100% !important;
-    overflow: hidden !important; /* Blocca l'overflow interno */
+    overflow: hidden !important; /* Blocca l'overflow dei testi interni */
   }
+
   .ex-word {
-    /* Ridimensiona e tronca tassativamente le parole lunghe con i tre puntini (...) */
-    font-size: calc(var(--ex-title, 38px) * 0.42) !important;
+    /* Forza il testo a non uscire MAI dallo schermo, tagliando con i tre puntini se troppo lungo */
+    font-size: calc(var(--ex-title, 38px) * 0.40) !important;
     width: 100% !important;
     max-width: 100% !important;
     white-space: nowrap !important;
     overflow: hidden !important;
-    text-overflow: ellipsis !important; /* Forza i puntini di sospensione se non c'è spazio */
+    text-overflow: ellipsis !important; /* Visualizza ... in caso di parole lunghissime */
     display: block !important;
   }
-  /* Ridimensionamento proporzionale delle parole interne alla preview */
-  .ex-word--0 { font-size: calc(var(--ex-title, 38px) * 0.48) !important; }
-  .ex-word--1 { font-size: calc(var(--ex-title, 38px) * 0.42) !important; }
-  .ex-word--2 { font-size: calc(var(--ex-title, 38px) * 0.36) !important; }
-  .ex-word--3 { font-size: calc(var(--ex-title, 38px) * 0.32) !important; }
-  .ex-word--4 { font-size: calc(var(--ex-title, 38px) * 0.28) !important; }
+
+  /* Ridimensionamento proporzionale di sicurezza per i singoli livelli di testo interni */
+  .ex-word--0 { font-size: calc(var(--ex-title, 38px) * 0.44) !important; }
+  .ex-word--1 { font-size: calc(var(--ex-title, 38px) * 0.38) !important; }
+  .ex-word--2 { font-size: calc(var(--ex-title, 38px) * 0.34) !important; }
+  .ex-word--3 { font-size: calc(var(--ex-title, 38px) * 0.30) !important; }
+  .ex-word--4 { font-size: calc(var(--ex-title, 38px) * 0.26) !important; }
 
 
-  /* 3. LANDING (Forza la divisione esatta in 3 righe ed ottimizza le dimensioni) */
+  /* 3. LANDING (Divisione forzata millimetrica su 3 righe come desktop) */
   .landing-cloud {
     padding: 8px !important;
   }
+
   .landing-phrase {
     display: flex !important;
     flex-wrap: wrap !important;
     justify-content: center !important;
     align-items: center !important;
-    gap: 10px 14px !important; /* Gestione controllata dello spazio orizzontale/verticale */
+    gap: 12px 14px !important;
     max-width: 100% !important;
     width: auto !important;
   }
+
   .landing-unit {
     display: inline-flex !important;
     flex-wrap: nowrap !important;
@@ -194,33 +215,29 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
     gap: 4px !important;
   }
   
-  /* Meccanismo per andare a capo esattamente dove richiesto */
-  /* Primo rigo: (everything) (i) -> poi va a capo */
-  .landing-phrase .landing-unit:nth-child(2)::after {
-    content: "" !important;
-    flex-basis: 100% !important;
-    width: 0 !important;
-    height: 0 !important;
-  }
-  /* Secondo rigo: (can't) (say) -> poi va a capo */
-  .landing-phrase .landing-unit:nth-child(4)::after {
-    content: "" !important;
-    flex-basis: 100% !important;
-    width: 0 !important;
-    height: 0 !important;
+  /* Interruzione dopo la seconda box (everything i) */
+  .landing-phrase .landing-unit:nth-of-type(2) {
+    margin-right: 100% !important; /* Forza il rigo successivo */
   }
 
-  /* Ridimensionamento bilanciato di testi e parentesi per evitare sovrapposizioni verticali */
+  /* Interruzione dopo la quarta box (can't say) */
+  .landing-phrase .landing-unit:nth-of-type(4) {
+    margin-right: 100% !important; /* Forza il rigo successivo */
+  }
+
+  /* Dimensioni proporzionate per far stare comodamente le coppie di parole su ogni riga */
   .landing-word {
-    font-size: clamp(24px, 6vw, 34px) !important; 
+    font-size: clamp(22px, 5.8vw, 32px) !important; 
     line-height: 1.1 !important;
   }
+
   .landing-paren {
-    font-size: clamp(28px, 6.5vw, 38px) !important;
+    font-size: clamp(26px, 6.2vw, 36px) !important;
     line-height: 0.9 !important;
   }
+
   .landing-slot {
-    width: clamp(34px, 7vw, 44px) !important;
-    height: clamp(24px, 5vw, 30px) !important;
+    width: clamp(32px, 6.5vw, 42px) !important;
+    height: clamp(22px, 4.8vw, 28px) !important;
   }
 }
