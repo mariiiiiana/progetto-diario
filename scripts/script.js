@@ -132,17 +132,17 @@ function emotionStripMeta(id){
 const emotionImagesBoot = loadEmotionImages();
 const canvas = document.getElementById('iso');
 const ctx = canvas ? canvas.getContext('2d') : null;
+let canvasContextLost = false; // nuovo
 if(canvas){
-  // Su mobile, con molti drawImage continui per il loop di animazione, il
-  // browser puo' perdere il backing store del canvas (context loss) e
-  // lasciarlo nero. Qui intercettiamo l'evento e lo ricostruiamo da soli,
-  // invece di lasciare l'utente con lo schermo nero finche' non ricarica.
   canvas.addEventListener('contextlost', (e) => {
     e.preventDefault();
-    console.warn('Canvas context lost, attendo il recupero automatico del browser');
+    canvasContextLost = true;
+    console.warn('Canvas context lost, fermo il loop in attesa del recupero del browser');
   });
   canvas.addEventListener('contextrestored', () => {
+    canvasContextLost = false;
     try { resizeCanvas(); } catch(err){ console.error('resizeCanvas dopo contextrestored error', err); }
+    requestAnimationFrame(draw); // riavvia il loop che era stato fermato
   });
 }
 const explodeLayer = document.getElementById('explodeLayer');
@@ -1992,6 +1992,7 @@ function drawWorldLinks(active, t){
 let __lastDrawT = 0;
 function draw(t){
   if(window.__EMOTION_DETAIL_PAGE__) return;
+  if(canvasContextLost) return; // nuovo: non richiamare requestAnimationFrame finché non torna 'contextrestored'
   if(window.innerWidth < 700){
     if(t - __lastDrawT < 32){ requestAnimationFrame(draw); return; }
     __lastDrawT = t;
