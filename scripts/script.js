@@ -93,11 +93,15 @@ async function loadEmotionImages(){
     if(!manifest) throw new Error('emotion-images.json missing');
     await Promise.all(Object.entries(manifest).map(async ([id, paths]) => {
       const loaded = [];
-      for(const src of paths){
-        try { loaded.push(await loadImage(src)); } catch { /* skip broken file */ }
-      }
-      if(!loaded.length) return;
-      emotionStrips[id] = { images: loaded, faces: partitionFaceImages(loaded) };
+      await Promise.all(paths.map(async src => {
+        try {
+          const img = await loadImage(src);
+          loaded.push(img);
+          // aggiorna subito: la box mostra le sue foto man mano che arrivano,
+          // invece di aspettare che TUTTE le immagini di quell'emozione siano pronte
+          emotionStrips[id] = { images: loaded, faces: partitionFaceImages(loaded) };
+        } catch { /* skip broken file */ }
+      }));
     }));
   } catch (error) {
     console.error('Emotion images loading error:', error);
