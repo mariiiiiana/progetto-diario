@@ -2809,6 +2809,15 @@ function initGuide(){
   const dismissBtn = document.getElementById('guideDismiss');
   if(!backdrop || !trigger) return;
 
+  // Su mobile non esiste l'hover: il primo tap fa la preview, il doppio tap
+  // apre l'archivio. Adattiamo il testo del popup di conseguenza.
+  const stepsList = backdrop.querySelector('.guide-steps');
+  if(stepsList && window.innerWidth < 700){
+    stepsList.innerHTML =
+      '<li><span class="guide-action">click once</span> on a room to preview its pattern and frequent words</li>' +
+      '<li><span class="guide-action">double click</span> a room to open its theme archive</li>';
+  }
+
   const STORAGE_KEY = 'diary.archive.guide.dismissed';
 
   function openGuide(){
