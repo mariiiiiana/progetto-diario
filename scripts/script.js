@@ -60,12 +60,43 @@ const emotionManifestPromise = fetch('data/emotion-images.json')
     return manifest;
   })
   .catch(() => null);
+// Limite massimo (lato lungo) a cui le foto vengono ridotte prima di essere
+// tenute in memoria come texture per il canvas. Le foto originali possono
+// pesare diversi megapixel: disegnate decine di volte nel ciclo draw() su
+// mobile saturano rapidamente la memoria GPU del browser, che a quel punto
+// scarta il contesto del canvas 2D (evento 'contextlost') e su Safari/Chrome
+// mobile quell'evento spesso non viene mai "ripristinato" -> schermo nero
+// permanente. Ridimensionare qui le immagini alla risoluzione realmente
+// necessaria sullo schermo riduce drasticamente quella pressione di memoria.
+const MAX_TILE_DIM = window.innerWidth < 700 ? 420 : 760;
+
+function downscaleImage(img){
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  if(!iw || !ih) return img;
+  const longest = Math.max(iw, ih);
+  if(longest <= MAX_TILE_DIM) return img; // gia' abbastanza piccola
+  const scale = MAX_TILE_DIM / longest;
+  const w = Math.max(1, Math.round(iw * scale));
+  const h = Math.max(1, Math.round(ih * scale));
+  try {
+    const off = document.createElement('canvas');
+    off.width = w; off.height = h;
+    const octx = off.getContext('2d');
+    octx.drawImage(img, 0, 0, w, h);
+    return off; // un canvas e' un drawImage-source valido tanto quanto un'Image
+  } catch(err){
+    console.warn('downscaleImage fallita, uso immagine originale', err);
+    return img;
+  }
+}
+
 function loadImage(src){
   return new Promise((resolve, reject) => {
     const im = new Image();
     let done = false;
     const finish = (fn, arg) => { if(done) return; done = true; fn(arg); };
-    im.onload = () => finish(resolve, im);
+    im.onload = () => finish(resolve, downscaleImage(im));
     im.onerror = () => finish(reject, new Error('Failed: ' + src));
     setTimeout(() => finish(reject, new Error('Timeout: ' + src)), 8000);
     im.src = src;
@@ -73,7 +104,9 @@ function loadImage(src){
 }
 function partitionFaceImages(images){
   const faces = { top: [], left: [], right: [] };
-  const ready = images.filter(im => im.complete && im.naturalWidth);
+  // Le immagini gia' ridimensionate da downscaleImage() arrivano come
+  // <canvas> (sempre "pronte"), quelle non ridimensionate restano <img>.
+  const ready = images.filter(im => im instanceof HTMLCanvasElement || (im.complete && im.naturalWidth));
   if(!ready.length) return faces;
   ready.forEach((img, i) => {
     const bucket = i % 3 === 0 ? 'top' : i % 3 === 1 ? 'left' : 'right';
@@ -107,7 +140,7 @@ async function loadEmotionImages(){
       i++;
     }
 
-    const CONCURRENCY = window.innerWidth < 700 ? 3 : 6;
+    const CONCURRENCY = window.innerWidth < 700 ? 2 : 6;
     let cursor = 0;
     async function worker(){
       while(cursor < tasks.length){
@@ -133,13 +166,28 @@ const emotionImagesBoot = loadEmotionImages();
 const canvas = document.getElementById('iso');
 const ctx = canvas ? canvas.getContext('2d') : null;
 let canvasContextLost = false; // nuovo
+let contextLostWatchdog = null;
 if(canvas){
   canvas.addEventListener('contextlost', (e) => {
     e.preventDefault();
     canvasContextLost = true;
     console.warn('Canvas context lost, fermo il loop in attesa del recupero del browser');
+    // Su molti browser mobile (in particolare Safari) il contesto 2D del
+    // canvas, una volta perso, non emette mai 'contextrestored': il loop
+    // resterebbe bloccato per sempre con lo schermo nero. Come rete di
+    // sicurezza, se dopo un breve periodo il contesto non e' tornato da
+    // solo, lo ricreiamo manualmente forzando un resize/redraw completo.
+    clearTimeout(contextLostWatchdog);
+    contextLostWatchdog = setTimeout(() => {
+      if(!canvasContextLost) return; // gia' risolto dall'evento nativo
+      console.warn('contextrestored mai arrivato: forzo il recupero manuale del canvas');
+      canvasContextLost = false;
+      try { resizeCanvas(); } catch(err){ console.error('resizeCanvas dopo recovery manuale error', err); }
+      requestAnimationFrame(draw);
+    }, 1500);
   });
   canvas.addEventListener('contextrestored', () => {
+    clearTimeout(contextLostWatchdog);
     canvasContextLost = false;
     try { resizeCanvas(); } catch(err){ console.error('resizeCanvas dopo contextrestored error', err); }
     requestAnimationFrame(draw); // riavvia il loop che era stato fermato
@@ -2501,7 +2549,10 @@ function startMainExperience(){
   const isMobile = () => window.innerWidth < 700;
   const recoverCanvas = () => {
     if(!mainExperienceStarted || !isMobile()) return;
+    const wasStuck = canvasContextLost;
+    canvasContextLost = false;
     resizeCanvas();
+    if(wasStuck) requestAnimationFrame(draw); // il loop si era fermato: ripartiamo a mano
   };
   window.addEventListener('pageshow', e => {
     if(e.persisted) recoverCanvas();
