@@ -1360,6 +1360,14 @@ const MAX_STACK_AT_POINT = 4;
 const STACK_RADIUS = 66;
 function syncWorldWidth(){
   if(viewH <= 0) return;
+  const isMobilePortrait = viewW < 600 && viewH > viewW;
+  if(isMobilePortrait){
+    // Su mobile non forziamo la larghezza minima desktop (800): la lasciamo
+    // libera di seguire l'aspect ratio reale dello schermo, cosi' la mappa
+    // riempie lo schermo a una scala piu' grande (box e distanze piu' leggibili).
+    worldW = Math.max(280, Math.round((viewW / viewH) * WORLD_H));
+    return;
+  }
   worldW = Math.max(BASE_WORLD_W, Math.round((viewW / viewH) * WORLD_H));
 }
 function worldCenterX(){
@@ -1474,19 +1482,12 @@ function blockWorldBounds(cx, y, w, h, pad = 10){
 }
 function blockContainmentBounds(){
   const isMobilePortrait = viewW < 600 && viewH > viewW;
-  const pad = isMobilePortrait ? 30 : 20;
-  // Mobile: alza e centra di piu' l'area utilizzabile dalle box, lasciando
-  // ampio margine sopra e sotto cosi' che la preview (parole) non esca mai
-  // dallo schermo.
-  const effectiveTop = isMobilePortrait ? Math.round(WORLD_H * 0.17) : pad;
-  const effectiveBottom = isMobilePortrait
-    ? Math.round(WORLD_H * Math.min(0.74, (viewH / viewW) * (worldW / WORLD_H) * 0.62))
-    : WORLD_H - pad;
+  const pad = isMobilePortrait ? 24 : 20;
   return {
     left: pad,
     right: worldW - pad,
-    top: effectiveTop,
-    bottom: effectiveBottom
+    top: pad,
+    bottom: WORLD_H - pad
   };
 }
 function clampBlockPosition(cx, y, w, h){
@@ -1501,27 +1502,30 @@ function clampBlockPosition(cx, y, w, h){
   return { cx: nx, y: ny };
 }
 function rebuildBaseBlocks(){
+  const isMobilePortrait = viewW < 600 && viewH > viewW;
+  const sizeScale = isMobilePortrait ? 0.66 : 1;
   const ids = BASE_LAYOUT.map((_, i) => topEmotions[i]);
   const counts = ids.map(emotionEntryCount);
   const minC = Math.min(...counts);
   const maxC = Math.max(...counts);
   baseBlocks = BASE_LAYOUT.map((layout, i) => {
     const id = ids[i];
-    const { w, h } = blockSizeForCount(emotionEntryCount(id), layout.w, layout.h, minC, maxC, i);
+    const { w, h } = blockSizeForCount(emotionEntryCount(id), layout.w * sizeScale, layout.h * sizeScale, minC, maxC, i);
     const seed = layoutSeedPosition(layout, id);
     const pos = clampBlockPosition(seed.cx, seed.y, w, h);
     return block(id, pos.cx, pos.y, w, h, layout.slow);
   });
-  // Su mobile distribuiamo le box con molto piu' margine cosi' da renderle
-  // chiaramente separate, non addossate l'una all'altra.
-  const isMobilePortrait = viewW < 600 && viewH > viewW;
-  const gap = isMobilePortrait ? 34 : BLOCK_LAYOUT_GAP;
-  const gapSoft = isMobilePortrait ? 14 : BLOCK_LAYOUT_GAP_SOFT;
+  // Su mobile distribuiamo le box con piu' margine cosi' da renderle
+  // chiaramente separate (ora che la mappa usa una scala piu' grande,
+  // un gap eccessivo non serve piu').
+  const gap = isMobilePortrait ? 22 : BLOCK_LAYOUT_GAP;
+  const gapSoft = isMobilePortrait ? 6 : BLOCK_LAYOUT_GAP_SOFT;
+  const stackLimit = isMobilePortrait ? 3 : MAX_STACK_AT_POINT;
   separateBlocks(baseBlocks, gap, 140);
-  enforceMaxStack(baseBlocks, MAX_STACK_AT_POINT);
+  enforceMaxStack(baseBlocks, stackLimit);
   expandHorizontal(baseBlocks);
   separateBlocks(baseBlocks, gapSoft, 70);
-  enforceMaxStack(baseBlocks, MAX_STACK_AT_POINT);
+  enforceMaxStack(baseBlocks, stackLimit);
   blocks = [...baseBlocks];
   syncParallaxDepth();
 }
@@ -1953,6 +1957,8 @@ function draw(t){
   try {
     tickParallax();
     ctx.setTransform(1,0,0,1,0,0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
     ctx.clearRect(0,0,viewW,viewH);
     ctx.fillStyle='rgba(251,247,246,1)'; ctx.fillRect(0,0,viewW,viewH);
     ctx.save();
