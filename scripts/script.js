@@ -132,16 +132,7 @@ function emotionStripMeta(id){
 const emotionImagesBoot = loadEmotionImages();
 const canvas = document.getElementById('iso');
 const ctx = canvas ? canvas.getContext('2d') : null;
-let canvasContextLost = false;
-let pageHidden = document.hidden;
-
-document.addEventListener('visibilitychange', () => {
-  pageHidden = document.hidden;
-  if(!pageHidden){
-    __lastDrawT = 0;            // evita un salto temporale enorme al ritorno
-    requestAnimationFrame(draw); // riavvia il loop, che nel frattempo si era fermato
-  }
-});
+let canvasContextLost = false; // nuovo
 if(canvas){
   canvas.addEventListener('contextlost', (e) => {
     e.preventDefault();
@@ -2001,8 +1992,7 @@ function drawWorldLinks(active, t){
 let __lastDrawT = 0;
 function draw(t){
   if(window.__EMOTION_DETAIL_PAGE__) return;
-  if(canvasContextLost) return;
-  if(pageHidden) return;   // <-- riga nuova: non richiamare requestAnimationFrame se il tab è in background
+  if(canvasContextLost) return; // nuovo: non richiamare requestAnimationFrame finché non torna 'contextrestored'
   if(window.innerWidth < 700){
     if(t - __lastDrawT < 42){ requestAnimationFrame(draw); return; }
     __lastDrawT = t;
