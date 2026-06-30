@@ -143,9 +143,10 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
 
   /* 2. PREVIEW DELLE BOX (Alzate, centrate, distanziate e NESSUNA fuoriuscita) */
   .explode-layer {
-    /* Alza la box sopra il punto di tocco del dito */
-    transform: translate(-50%, -45%) !important; 
+    /* Alza la box sopra il punto di tocco del dito, ben centrata */
+    transform: translate(-50%, -62%) !important; 
     z-index: 210 !important;
+    max-height: 80vh !important;
   }
   
   .ex-burst {
@@ -194,7 +195,7 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
   .landing-phrase {
     display: block !important; /* Cambiamo da flex a block per un controllo totale dell'andare a capo */
     width: 100% !important;
-    max-width: 310px !important;
+    max-width: 360px !important;
     margin: 0 auto !important;
     text-align: center !important;
   }
@@ -231,17 +232,17 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
 
   /* Grandezza maggiorata e bilanciata di foto e testi della landing */
   .landing-word {
-    font-size: 28px !important; 
+    font-size: 36px !important; 
     line-height: 1 !important;
   }
 
   .landing-paren {
-    font-size: 32px !important;
+    font-size: 40px !important;
     line-height: 1 !important;
   }
 
   .landing-slot {
-    width: 42px !important;
-    height: 28px !important;
+    width: 56px !important;
+    height: 38px !important;
   }
 }

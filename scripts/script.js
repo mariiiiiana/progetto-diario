@@ -1473,15 +1473,18 @@ function blockWorldBounds(cx, y, w, h, pad = 10){
   };
 }
 function blockContainmentBounds(){
-  const pad = 20;
   const isMobilePortrait = viewW < 600 && viewH > viewW;
+  const pad = isMobilePortrait ? 30 : 20;
+  // Mobile: alza e centra l'area utilizzabile dalle box, lasciando margine
+  // sopra e sotto cosi' che la preview (parole) non esca mai dallo schermo.
+  const effectiveTop = isMobilePortrait ? Math.round(WORLD_H * 0.1) : pad;
   const effectiveBottom = isMobilePortrait
-    ? Math.round(WORLD_H * Math.min(0.92, (viewH / viewW) * (worldW / WORLD_H) * 0.88))
+    ? Math.round(WORLD_H * Math.min(0.8, (viewH / viewW) * (worldW / WORLD_H) * 0.74))
     : WORLD_H - pad;
   return {
     left: pad,
     right: worldW - pad,
-    top: pad,
+    top: effectiveTop,
     bottom: effectiveBottom
   };
 }
@@ -1508,10 +1511,14 @@ function rebuildBaseBlocks(){
     const pos = clampBlockPosition(seed.cx, seed.y, w, h);
     return block(id, pos.cx, pos.y, w, h, layout.slow);
   });
-  separateBlocks(baseBlocks, BLOCK_LAYOUT_GAP, 140);
+  // Su mobile distribuiamo le box con piu' margine cosi' da non averle addossate.
+  const isMobilePortrait = viewW < 600 && viewH > viewW;
+  const gap = isMobilePortrait ? 6 : BLOCK_LAYOUT_GAP;
+  const gapSoft = isMobilePortrait ? -10 : BLOCK_LAYOUT_GAP_SOFT;
+  separateBlocks(baseBlocks, gap, 140);
   enforceMaxStack(baseBlocks, MAX_STACK_AT_POINT);
   expandHorizontal(baseBlocks);
-  separateBlocks(baseBlocks, BLOCK_LAYOUT_GAP_SOFT, 70);
+  separateBlocks(baseBlocks, gapSoft, 70);
   enforceMaxStack(baseBlocks, MAX_STACK_AT_POINT);
   blocks = [...baseBlocks];
   syncParallaxDepth();
@@ -1941,48 +1948,54 @@ function drawWorldLinks(active, t){
 }
 function draw(t){
   if(window.__EMOTION_DETAIL_PAGE__) return;
-  tickParallax();
-  ctx.setTransform(1,0,0,1,0,0);
-  ctx.clearRect(0,0,viewW,viewH);
-  ctx.fillStyle='rgba(251,247,246,1)'; ctx.fillRect(0,0,viewW,viewH);
-  ctx.save();
-  ctx.translate(originX, originY);
-  ctx.scale(mapScale, mapScale);
-  if(lastPointer && !touchHoverLocked) hover = hitTest(lastPointer,t);
-  const activeBlock = hover;
-  const relatedIds = activeBlock
-    ? (patternData[activeBlock.id]?.related || []).map(r => typeof r === 'string' ? r : r.id)
-    : [];
-  const sorted=[...blocks].sort((a,b)=> (a.y+a.h)-(b.y+b.h));
-  sorted.forEach((b,i)=>{
-    const p=pts(b,t);
-    const off = t*.055*b.slow + i*35;
-    const media = emotionStripMeta(b.id);
-    const faceSets = media?.faces || { top: [], left: [], right: [] };
-    const isHover = hover === b;
-    const isActive = activeBlock === b;
-    const isRelated = relatedIds.includes(b.id);
-    const alpha = !activeBlock ? .94 : isActive ? 1 : isRelated ? .52 : .18;
-    const motion = p.motion || {};
-    drawBlockShadow(b, p, alpha, motion);
-    face(faceSets.top, p.bottom, off, 'top', alpha);
-    face(faceSets.left, p.backLeft, off + 56, 'left', alpha);
-    face(faceSets.right, p.backRight, off + 80, 'right', alpha);
-    shadeInteriorWall(p.backLeft, alpha);
-    shadeInteriorWall(p.backRight, alpha);
-    drawInteriorRim(p, alpha);
-    if(isActive){
-      ctx.save();
-      poly(p.bottom);
-      ctx.globalCompositeOperation='screen';
-      ctx.fillStyle='rgba(255,255,255,.18)';
-      ctx.fill();
-      ctx.restore();
-    }
-  });
-  if(activeBlock) drawWorldLinks(activeBlock, t);
-  ctx.restore();
-  positionText();
+  try {
+    tickParallax();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,viewW,viewH);
+    ctx.fillStyle='rgba(251,247,246,1)'; ctx.fillRect(0,0,viewW,viewH);
+    ctx.save();
+    ctx.translate(originX, originY);
+    ctx.scale(mapScale, mapScale);
+    if(lastPointer && !touchHoverLocked) hover = hitTest(lastPointer,t);
+    const activeBlock = hover;
+    const relatedIds = activeBlock
+      ? (patternData[activeBlock.id]?.related || []).map(r => typeof r === 'string' ? r : r.id)
+      : [];
+    const sorted=[...blocks].sort((a,b)=> (a.y+a.h)-(b.y+b.h));
+    sorted.forEach((b,i)=>{
+      const p=pts(b,t);
+      const off = t*.055*b.slow + i*35;
+      const media = emotionStripMeta(b.id);
+      const faceSets = media?.faces || { top: [], left: [], right: [] };
+      const isHover = hover === b;
+      const isActive = activeBlock === b;
+      const isRelated = relatedIds.includes(b.id);
+      const alpha = !activeBlock ? .94 : isActive ? 1 : isRelated ? .52 : .18;
+      const motion = p.motion || {};
+      drawBlockShadow(b, p, alpha, motion);
+      face(faceSets.top, p.bottom, off, 'top', alpha);
+      face(faceSets.left, p.backLeft, off + 56, 'left', alpha);
+      face(faceSets.right, p.backRight, off + 80, 'right', alpha);
+      shadeInteriorWall(p.backLeft, alpha);
+      shadeInteriorWall(p.backRight, alpha);
+      drawInteriorRim(p, alpha);
+      if(isActive){
+        ctx.save();
+        poly(p.bottom);
+        ctx.globalCompositeOperation='screen';
+        ctx.fillStyle='rgba(255,255,255,.18)';
+        ctx.fill();
+        ctx.restore();
+      }
+    });
+    if(activeBlock) drawWorldLinks(activeBlock, t);
+    ctx.restore();
+    positionText();
+  } catch(err){
+    // Non lasciare mai che un errore in un singolo frame interrompa il loop
+    // (causa storica dello schermo nero al ritorno dalla pagina temi su mobile).
+    console.error('draw frame error', err);
+  }
   requestAnimationFrame(draw);
 }
 function firstBlock(id){ return blocks.find(b=>b.id===id); }
@@ -2431,6 +2444,20 @@ function startMainExperience(){
   resizeCanvas();
   emotionImagesBoot.then(() => requestAnimationFrame(draw));
   initGuide();
+  // Su mobile, tornando dalla pagina dei temi (back button / bfcache) il
+  // canvas puo' restare nero: forziamo un resize/redraw quando la pagina
+  // torna visibile.
+  const isMobile = () => window.innerWidth < 700;
+  const recoverCanvas = () => {
+    if(!mainExperienceStarted || !isMobile()) return;
+    resizeCanvas();
+  };
+  window.addEventListener('pageshow', e => {
+    if(e.persisted) recoverCanvas();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible') recoverCanvas();
+  });
 }
 
 function shouldSkipLanding(){
