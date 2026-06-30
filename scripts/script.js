@@ -2690,11 +2690,18 @@ function buildLandingCollage(cloud){
   cloud.appendChild(phrase);
   return slots;
 }
+function primeCanvasPaint(){
+  if(!canvas || !ctx) return;
+  resizeCanvas();
+  ctx.fillStyle = 'rgba(251,247,246,1)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
 
 function dismissLanding(){
   const landing = document.getElementById('landing');
   const poster = document.getElementById('poster');
   document.body.classList.remove('landing-active');
+  primeCanvasPaint();
   if(landing){
     landing.classList.add('is-dismissed');
     landing.setAttribute('aria-hidden', 'true');
