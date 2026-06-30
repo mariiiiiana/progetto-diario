@@ -106,7 +106,7 @@ async function loadEmotionImages(){
   }
 }
 function emotionStripMeta(id){
-  return emotionStrips[id] || emotionStrips.neutra || Object.values(emotionStrips)[0] || null;
+  return emotionStrips[id] || emotionStrips.neutra || null;
 }
 const emotionImagesBoot = loadEmotionImages();
 const canvas = document.getElementById('iso');
@@ -2452,7 +2452,7 @@ function startMainExperience(){
   if(stageEl && typeof ResizeObserver !== 'undefined'){
     new ResizeObserver(resizeCanvas).observe(stageEl);
   }
-  resizeCanvas();
+  try { resizeCanvas(); } catch(err){ console.error('resizeCanvas error', err); }
   requestAnimationFrame(draw);
   initGuide();
   // Su mobile, tornando dalla pagina dei temi (back button / bfcache) il

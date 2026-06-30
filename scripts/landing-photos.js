@@ -212,6 +212,9 @@ window.__resetLandingBoot = () => { booting = false; };
 
       if(delay) await pause(delay * 0.5);
       revealLandingUi();
+    } catch(err){
+      console.error('Landing photos error:', err);
+      revealLandingUi();
     } finally {
       booting = false;
     }
