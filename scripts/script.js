@@ -1475,11 +1475,12 @@ function blockWorldBounds(cx, y, w, h, pad = 10){
 function blockContainmentBounds(){
   const isMobilePortrait = viewW < 600 && viewH > viewW;
   const pad = isMobilePortrait ? 30 : 20;
-  // Mobile: alza e centra l'area utilizzabile dalle box, lasciando margine
-  // sopra e sotto cosi' che la preview (parole) non esca mai dallo schermo.
-  const effectiveTop = isMobilePortrait ? Math.round(WORLD_H * 0.1) : pad;
+  // Mobile: alza e centra di piu' l'area utilizzabile dalle box, lasciando
+  // ampio margine sopra e sotto cosi' che la preview (parole) non esca mai
+  // dallo schermo.
+  const effectiveTop = isMobilePortrait ? Math.round(WORLD_H * 0.17) : pad;
   const effectiveBottom = isMobilePortrait
-    ? Math.round(WORLD_H * Math.min(0.8, (viewH / viewW) * (worldW / WORLD_H) * 0.74))
+    ? Math.round(WORLD_H * Math.min(0.74, (viewH / viewW) * (worldW / WORLD_H) * 0.62))
     : WORLD_H - pad;
   return {
     left: pad,
@@ -1511,10 +1512,11 @@ function rebuildBaseBlocks(){
     const pos = clampBlockPosition(seed.cx, seed.y, w, h);
     return block(id, pos.cx, pos.y, w, h, layout.slow);
   });
-  // Su mobile distribuiamo le box con piu' margine cosi' da non averle addossate.
+  // Su mobile distribuiamo le box con molto piu' margine cosi' da renderle
+  // chiaramente separate, non addossate l'una all'altra.
   const isMobilePortrait = viewW < 600 && viewH > viewW;
-  const gap = isMobilePortrait ? 6 : BLOCK_LAYOUT_GAP;
-  const gapSoft = isMobilePortrait ? -10 : BLOCK_LAYOUT_GAP_SOFT;
+  const gap = isMobilePortrait ? 34 : BLOCK_LAYOUT_GAP;
+  const gapSoft = isMobilePortrait ? 14 : BLOCK_LAYOUT_GAP_SOFT;
   separateBlocks(baseBlocks, gap, 140);
   enforceMaxStack(baseBlocks, MAX_STACK_AT_POINT);
   expandHorizontal(baseBlocks);

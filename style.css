@@ -135,10 +135,12 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
     -webkit-tap-highlight-color: transparent !important;
     position: absolute !important;
     inset: 0 !important;
+    background: var(--paper) !important; /* fallback: mai nero anche se un frame non disegna */
   }
   .stage {
     position: relative !important;
     overflow: hidden !important;
+    background: var(--paper) !important;
   }
 
   /* 2. PREVIEW DELLE BOX (Alzate, centrate, distanziate e NESSUNA fuoriuscita) */
@@ -149,6 +151,46 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
     max-height: 80vh !important;
   }
   
+  .ex-head {
+    flex-wrap: wrap !important;
+    max-width: 100% !important;
+    gap: 4px !important;
+  }
+
+  .ex-bg-num {
+    font-size: 34px !important;
+  }
+
+  .ex-head-text {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .ex-title {
+    font-size: 17px !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+    line-height: 1.1 !important;
+    max-width: 100% !important;
+  }
+
+  .ex-count, .ex-meta {
+    font-size: 9px !important;
+    white-space: normal !important;
+  }
+
+  .ex-themes {
+    max-width: 100% !important;
+  }
+
+  .ex-theme {
+    font-size: 8px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    max-width: 100% !important;
+  }
+
   .ex-burst {
     width: 85vw !important; 
     max-width: 290px !important;
@@ -187,15 +229,16 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
   .ex-word--4 { font-size: 12px !important; }
 
 
-  /* 3. LANDING (Testo e foto grandi, incolonnati esattamente in 3 righe) */
+  /* 3. LANDING (Testo e foto grandi, incolonnati esattamente in 3 righe, MAI fuori schermo) */
   .landing-cloud {
-    padding: 15px !important;
+    padding: 10px !important;
+    overflow: hidden !important;
   }
 
   .landing-phrase {
     display: block !important; /* Cambiamo da flex a block per un controllo totale dell'andare a capo */
     width: 100% !important;
-    max-width: 360px !important;
+    max-width: 100% !important;
     margin: 0 auto !important;
     text-align: center !important;
   }
@@ -204,8 +247,8 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
     display: inline-flex !important;
     vertical-align: middle !important;
     align-items: center !important;
-    gap: 6px !important;
-    margin: 8px 4px !important; /* Spazio e ottima distribuzione tra le box */
+    gap: clamp(3px, 1vw, 6px) !important;
+    margin: clamp(4px, 1.4vh, 9px) clamp(2px, 1vw, 5px) !important;
   }
   
   /* RIGA 1: (everything) (i) -> Forza l'andare a capo dopo il secondo blocco */
@@ -230,19 +273,24 @@ body.guide-open .guide-trigger{opacity:0;pointer-events:none;}
     width: 100% !important;
   }
 
-  /* Grandezza maggiorata e bilanciata di foto e testi della landing */
+  /* Grandezza maggiorata di foto e testi della landing, ma scalata sulla
+     larghezza dello schermo cosi' da non sborare mai fuori (clamp con vw) */
   .landing-word {
-    font-size: 36px !important; 
+    font-size: clamp(17px, 5.4vw, 30px) !important; 
     line-height: 1 !important;
   }
 
   .landing-paren {
-    font-size: 40px !important;
+    font-size: clamp(19px, 5.8vw, 32px) !important;
     line-height: 1 !important;
   }
 
+  .landing-slots {
+    gap: clamp(1px, 0.4vw, 3px) !important;
+  }
+
   .landing-slot {
-    width: 56px !important;
-    height: 38px !important;
+    width: clamp(19px, 6.2vw, 36px) !important;
+    height: clamp(13px, 4.3vw, 25px) !important;
   }
 }
