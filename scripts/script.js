@@ -91,18 +91,35 @@ async function loadEmotionImages(){
   try {
     const manifest = await emotionManifestPromise;
     if(!manifest) throw new Error('emotion-images.json missing');
-    await Promise.all(Object.entries(manifest).map(async ([id, paths]) => {
-      const loaded = [];
-      await Promise.all(paths.map(async src => {
+
+    // Costruiamo una coda di compiti intrecciando le emozioni (prima immagine
+    // di ognuna, poi la seconda di ognuna, ecc.) cosi' ogni box riceve la sua
+    // prima foto presto, ma limitiamo quante richieste/decodifiche girano
+    // CONTEMPORANEAMENTE per non saturare la memoria su mobile (causa del crash).
+    const perEmotion = Object.entries(manifest).map(([id, paths]) => ({ id, paths, loaded: [] }));
+    const tasks = [];
+    let i = 0, more = true;
+    while(more){
+      more = false;
+      for(const e of perEmotion){
+        if(i < e.paths.length){ tasks.push({ id: e.id, src: e.paths[i], loaded: e.loaded }); more = true; }
+      }
+      i++;
+    }
+
+    const CONCURRENCY = window.innerWidth < 700 ? 3 : 6;
+    let cursor = 0;
+    async function worker(){
+      while(cursor < tasks.length){
+        const task = tasks[cursor++];
         try {
-          const img = await loadImage(src);
-          loaded.push(img);
-          // aggiorna subito: la box mostra le sue foto man mano che arrivano,
-          // invece di aspettare che TUTTE le immagini di quell'emozione siano pronte
-          emotionStrips[id] = { images: loaded, faces: partitionFaceImages(loaded) };
+          const img = await loadImage(task.src);
+          task.loaded.push(img);
+          emotionStrips[task.id] = { images: task.loaded, faces: partitionFaceImages(task.loaded) };
         } catch { /* skip broken file */ }
-      }));
-    }));
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, tasks.length) }, worker));
   } catch (error) {
     console.error('Emotion images loading error:', error);
   } finally {
