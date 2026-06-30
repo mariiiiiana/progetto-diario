@@ -63,8 +63,11 @@ const emotionManifestPromise = fetch('data/emotion-images.json')
 function loadImage(src){
   return new Promise((resolve, reject) => {
     const im = new Image();
-    im.onload = () => resolve(im);
-    im.onerror = () => reject(new Error('Failed: ' + src));
+    let done = false;
+    const finish = (fn, arg) => { if(done) return; done = true; fn(arg); };
+    im.onload = () => finish(resolve, im);
+    im.onerror = () => finish(reject, new Error('Failed: ' + src));
+    setTimeout(() => finish(reject, new Error('Timeout: ' + src)), 8000);
     im.src = src;
   });
 }
@@ -2450,7 +2453,7 @@ function startMainExperience(){
     new ResizeObserver(resizeCanvas).observe(stageEl);
   }
   resizeCanvas();
-  emotionImagesBoot.then(() => requestAnimationFrame(draw));
+  requestAnimationFrame(draw);
   initGuide();
   // Su mobile, tornando dalla pagina dei temi (back button / bfcache) il
   // canvas puo' restare nero: forziamo un resize/redraw quando la pagina
