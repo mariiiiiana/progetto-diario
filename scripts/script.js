@@ -115,6 +115,19 @@ function emotionStripMeta(id){
 const emotionImagesBoot = loadEmotionImages();
 const canvas = document.getElementById('iso');
 const ctx = canvas ? canvas.getContext('2d') : null;
+if(canvas){
+  // Su mobile, con molti drawImage continui per il loop di animazione, il
+  // browser puo' perdere il backing store del canvas (context loss) e
+  // lasciarlo nero. Qui intercettiamo l'evento e lo ricostruiamo da soli,
+  // invece di lasciare l'utente con lo schermo nero finche' non ricarica.
+  canvas.addEventListener('contextlost', (e) => {
+    e.preventDefault();
+    console.warn('Canvas context lost, attendo il recupero automatico del browser');
+  });
+  canvas.addEventListener('contextrestored', () => {
+    try { resizeCanvas(); } catch(err){ console.error('resizeCanvas dopo contextrestored error', err); }
+  });
+}
 const explodeLayer = document.getElementById('explodeLayer');
 const links = document.getElementById('links');
 const stageEl = document.querySelector('.stage');
@@ -1959,8 +1972,13 @@ function drawWorldLinks(active, t){
   });
   ctx.restore();
 }
+let __lastDrawT = 0;
 function draw(t){
   if(window.__EMOTION_DETAIL_PAGE__) return;
+  if(window.innerWidth < 700){
+    if(t - __lastDrawT < 32){ requestAnimationFrame(draw); return; }
+    __lastDrawT = t;
+  }
   try {
     tickParallax();
     ctx.setTransform(1,0,0,1,0,0);
